@@ -68,25 +68,31 @@ def outputPOList(Objects, filename = 'POLIST', path='output'):
     header.sort()
 
     header = [
-            'Unique_SPM',
+            #'Unique_SPM',
             'ZTE_PO_Nr',
             'SAP_PO_Nr',
             'Site_ID',
             # 'BMID',
             # 'PMR',
             'Material_Code',
-            'Sheetname','IST_92',
+            'Qty',
+            'Sheetname',
+            #'IST_92',
             'PO_Amount',
-            #'Confirm_Date',
+            'Confirm_Date',
             'PO_Date',
             #'DN_Done_Date','DN_Maker',
             # 'DN_Status','DN_Booker'
-            'Product_Description','Qty',
+            'Product_Description',
             #'Credit_Memo_Amount','Credit_Memo',
-            'Item_Code','Buyer','Supplier',
-            #'Delivery_Address','Delivery_Date',
+            'Item_Code',
+            #'Buyer','Supplier',
+            'Delivery_Address','Delivery_Date',
             'Remarks',
-            # 'Filename','Source','SN','Rowindex',
+            'Filename',
+            'Source',
+            'SN',
+            'Rowindex',
             # 'SAP_Deleted',
     ]
 

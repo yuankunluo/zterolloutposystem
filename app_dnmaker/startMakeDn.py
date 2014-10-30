@@ -91,7 +91,19 @@ def checkZTEPowithSAPLieferRecordAndOutput(fileDict):
     #         ztepo.Same_In_SAP = False
 
 
-    
+    sponr_set = list(set([spn.Purchasing_Document for spn in sap_DNRecords]))
+    zponr_set = list(set([zpo.ZTE_PO_Nr for zpo in zte_PORecords]))
+
+
+    for zponr in zponr_set:
+        zpo_mcodes = [(zpo.Material_Code, zpo.Qty) for zpo in zte_PORecords if zpo.ZTE_PO_Nr == zponr]
+        print(zpo_mcodes)
+        zpo_mcodes = __mixListofTupleofMaterialCode(zpo_mcodes)
+        print(zpo_mcodes)
+
+
+
+
 
     now = __getNowAsString()
 
@@ -108,9 +120,11 @@ def __mixListofTupleofMaterialCode(listoftuple):
     materials = set(materials)
     mDict = {}
     for mc in materials:
-        qty_for_mc = [int(x[1]) for x in listoftuple if x[0] == mc]
-        sum_qty = sum(qty_for_mc)
-        result.append((mc, unicode(sum_qty)))
+        if mc is not None:
+            qty_for_mc = [int(x[1]) for x in listoftuple if x[0] == mc and x[1] is not None]
+            sum_qty = sum(qty_for_mc)
+            result.append((mc, unicode(sum_qty)))
+    return result
 
 
 

@@ -26,7 +26,7 @@ class PORecord():
 
 # ----------- Gothrough -----------------------------------------
 
-def goThroughPolistDirectory(path = 'input/polist/', outputfile = 'ALL_ZTE_PO_List', outputpath='output/polist/', output = True):
+def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO_List', outputpath='output/polist/', output = True):
     """
 
     The dirctory name of the files that stored xlmx files
@@ -129,17 +129,27 @@ def __readPoRecordFromRowobje(rowObj):
                     poObj.__dict__[k] = fileReader.clearUnicode(rowObj.__dict__[objk])
 
 
-    split_reg = r'[^0-9a-zA-Z]'
+    split_reg = r'[;,-]'
     if poObj.ZTE_PO_Nr is not None:
         malist = None
         try:
             malist = re.split(split_reg, poObj.Material_Code, re.IGNORECASE)
+            qtylist = re.split(split_reg, poObj.Qty, re.IGNORECASE)
         except Exception:
             malist = [poObj.Material_Code]
-        for mc in malist:
+            qtylist = [poObj.Qty]
+        for i in range(len(malist)):
             newPoObj = copy.deepcopy(poObj) # clone obj
-            newPoObj.Material_Code = mc
-            if newPoObj.ZTE_PO_Nr:
+            try:
+                newPoObj.Material_Code = malist[i]
+            except Exception:
+                newPoObj.Material_Code = None
+            try:
+                newPoObj.Qty = qtylist[i]
+            except Exception:
+                newPoObj.Qty = list(set(qtylist))[0]
+                print("MCodeslist and Qtylist doesn't match", newPoObj.ZTE_PO_Nr, newPoObj.Sheetname)
+            if newPoObj.ZTE_PO_Nr: # if this is a sap po, then use it
                 reg_sappo = '3\d+'
                 if re.match(reg_sappo, newPoObj.ZTE_PO_Nr):
                     newPoObj.SAP_PO_Nr = newPoObj.ZTE_PO_Nr
