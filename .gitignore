@@ -1,0 +1,10 @@
+input/**/*.xml
+input/**/*.xls
+input/**/*.xlsx
+input/**/*.data
+output/**/*.xml
+output/**/*.xls
+output/**/*.xlsx
+output/**/*.data
+**/*.pyc
+
