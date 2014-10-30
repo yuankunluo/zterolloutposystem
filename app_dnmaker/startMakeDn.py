@@ -5,6 +5,7 @@ import recordReader as sapReader
 import datetime
 import pickle
 from collections import Counter
+import tools.fileWriter as fileWriter
 
 def getAllDataAndWriteToFileDict():
     """
@@ -39,8 +40,7 @@ def getAllDataAndWriteToFileDict():
     }
 
 
-    now = datetime.datetime.now()
-    now = now.strftime("%Y%m%d_%H%M%S")
+    now = __getNowAsString()
     with open("input/raw/fileDict_" + now + '.data','wb') as f:
         pickle.dump(fileDict, f)
 
@@ -64,9 +64,61 @@ def checkZTEPowithSAPLieferRecordAndOutput(fileDict):
     """
     zte_PORecords = fileDict["zte_PORecords"]
     sap_DNRecords = fileDict["sap_DNRecords"]
-    orbm_Records = fileDict["orbm_Records"]
+    sap_PORecords = fileDict["sap_PORecords"]
+    # orbm_Records = fileDict["orbm_Records"]
 
 
+
+    # step1: delete sap_dn with delection indicator
+    sap_DNRecords = [sapdn for sapdn in sap_DNRecords if sapdn.Deletion_Indicator is None]
+
+    # step2: add sappo to ztepo
+    zte_PORecords = addSPAPotoZtePo(sap_PORecords, zte_PORecords)
+
+    # step3: compare ztepo with sappo
+    # count = 0
+    # for ztepo in zte_PORecords:
+    #     if ztepo.SAP_PO_Nr is None:
+    #         continue
+    #     mcode = (ztepo.Material_Code, ztepo.Qty)
+    #     sap_mcodes = [(spn.Material, spn.Order_Quantity) for spn in sap_DNRecords
+    #                   if spn.Purchasing_Document == ztepo.SAP_PO_Nr]
+    #     ztepo.SAP_RECORDS = unicode(__mixListofTupleofMaterialCode(sap_mcodes))
+    #     if mcode in sap_mcodes:
+    #         ztepo.Same_In_SAP = True
+    #         continue
+    #     else:
+    #         ztepo.Same_In_SAP = False
+
+
+    
+
+    now = __getNowAsString()
+
+    try:
+        fileWriter.outputObjectsToFile(zte_PORecords, "PO_With_Problem_" + now , 'output/po_problem/')
+        print("Output file in output/po_problem")
+    except Exception:
+        print("Problem with output")
+    return zte_PORecords
+
+def __mixListofTupleofMaterialCode(listoftuple):
+    result = []
+    materials = [x[0] for x in listoftuple]
+    materials = set(materials)
+    mDict = {}
+    for mc in materials:
+        qty_for_mc = [int(x[1]) for x in listoftuple if x[0] == mc]
+        sum_qty = sum(qty_for_mc)
+        result.append((mc, unicode(sum_qty)))
+
+
+
+
+def __getNowAsString():
+    now = datetime.datetime.now()
+    now = now.strftime("%Y%m%d_%H%M%S")
+    return now
 
 
 def mixFile(fileDict):
@@ -159,7 +211,7 @@ def addSPAPotoZtePo(sap_PORecords, zte_PORecords):
             sap_nrs = list(set(sap_nrs))
             if len(sap_nrs) == 1:
                 zte_po.SAP_PO_Nr = sap_nrs[0]
-                #print("Find sappo", zte_po.ZTE_PO_Nr, zte_po.SAP_PO_Nr)
+                print("Find sappo", zte_po.ZTE_PO_Nr, zte_po.SAP_PO_Nr)
         if zte_po.SAP_PO_Nr and zte_po.Site_ID and zte_po.Material_Code:
             zte_po.Unique_SPM = '-'.join([zte_po.Site_ID, zte_po.SAP_PO_Nr, zte_po.Material_Code])
             zte_po.Unique_PM = '-'.join([zte_po.SAP_PO_Nr, zte_po.Material_Code])

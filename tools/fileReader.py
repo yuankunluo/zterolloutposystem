@@ -218,7 +218,7 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
             except Exception:
                 pass
             result.append(rowObj)
-    print("CoverRowObject", sheet.nrows-1, len(result), sheet.name, sheet.source)
+    print("fileReader: CoverRowObject", sheet.nrows-1, len(result), sheet.name, sheet.source)
     return result
 
 

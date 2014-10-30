@@ -47,14 +47,7 @@ def goThroughPolistDirectory(path = 'input/polist/', outputfile = 'ALL_ZTE_PO_Li
     print("[Trans Rate]",len(poObjes), len(rowObjs), len(poObjes)-len(rowObjs))
     return poObjes
 
-def writePosIntoPoList(pos, filename):
-    """
-    Write all pos into one book
-    :param pos:  all pos
-    :param filename: file name to store
-    :return: None
-    """
-    pass
+
 
 def isPolistSheetOk(sheet):
     """
@@ -86,8 +79,9 @@ def __readPoRecordFromRowobje(rowObj):
 
     result = []
 
-    #regexs
+    #regexs for sheetname
     re_nonsheetnames = r'.*([Ss]torno|[cC]ancelled).*|Sheet1|cancelled|Equipment.*Storno|Testbed|SW|OSS'
+    # regx
     regx_header = {
      'ZTE_PO_Nr':'2510$|PO$|PO_Nr$',
      'Buyer':'Buyer$',
@@ -152,81 +146,4 @@ def __readPoRecordFromRowobje(rowObj):
             result.append(newPoObj)
     return result
 
-    #     ponr_reg = '^([0-9]{6,15})$'
-    #     if re.match(ponr_reg, unicode(poObj.ZTE_PO_Nr)):
-    #         if poObj.Material_Code:
-    #             mcode_list = re.split(split_reg, poObj.Material_Code, re.IGNORECASE)
-    #             for mc in mcode_list:
-    #                 newPoObj = copy.deepcopy(poObj) # clone obj
-    #                 newPoObj.Material_Code = mc
-    #                 result.append(newPoObj)
-    #         else:
-    #             result.append(poObj)
-    #     else:
-    #         print("PO Nr doesn' match")
-    #         print(poObj.ZTE_PO_Nr, poObj.Site_ID, poObj.Filename, poObj.Sheetname, poObj.Rowindex)
-    #         print('-'*20)
-    # else:
-    #     print("Error Converting Po Object:" )
-    #     print(poObj.ZTE_PO_Nr, poObj.Site_ID, poObj.Filename, poObj.Sheetname, poObj.Rowindex)
-    #     print('-'*20)
-    #     return None
 
-
-    # count = 0
-    # # the table header
-    # header = [unicode(x.value).lower() for x in sheet.row(0)]
-    # for rowx in range(1, sheet.nrows):
-    #     po = PORecord()
-    #     try:
-    #         po.Source= re.sub(r'\s', '',sheet.source, re.IGNORECASE)
-    #         po.Product_Line = re.sub(r'DE|\s', '',sheet.name, re.IGNORECASE)
-    #     except Exception:
-    #         pass
-    #
-    #     #project name
-    #     m_proj = re.match(re_project, po.Source, re.IGNORECASE)
-    #     if m_proj:
-    #         po.Project_Name = m_proj.group(1)
-    #     else:
-    #         po.Project_Name = None
-    #
-    #     for k, reg in regx_header.items():
-    #         for colx in range(len(header)):
-    #             head = header[colx]
-    #             if re.match(reg, head, re.IGNORECASE):
-    #                 po.__dict__[k] = fileReader.clearUnicode(sheet.row(rowx)[colx].value)
-    #
-
-    #     # pos.append(po)
-    #     count += 1
-    #
-    # try:
-    #     print(len(pos), count,sheet.name, sheet.source)
-    # except:
-    #     pass
-    # return pos
-
-
-def storePos(poRecords):
-    """
-    Store pos, it's quick to pickle pos into one .dat file,
-    then check this file every time to make sure if this po already in database,
-    because access in db(disk) is too slow.
-    :param pos: the pos
-    :return: None
-    """
-    pass
-
-
-def createZTEPOFromPoRecord(po):
-    pass
-
-
-def createZTEMatNrsFromPoRecord(po):
-    """
-    Using the Information to create po, split with ;
-    :param po: the original po record from xls
-    :return: a list contains unsaved ZTEMatNr
-    """
-    pass
