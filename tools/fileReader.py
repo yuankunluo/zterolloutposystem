@@ -64,6 +64,27 @@ def __readAllSheetsWithHeaderInBook(book):
     return result
 
 
+
+
+def __readAllBookFilesInBook(path):
+    """
+    Read all file from path
+
+    :param path: the path
+    :param recursive: token if recursively read files
+    :return: all books objects
+    """
+    book = open_workbook(path)
+    book.source = path
+    reg_f = '\.xls$|\.xlsx$'
+    fnlist = re.split('[/\\\]', path)
+    file = re.sub(reg_f,'',fnlist[-1])
+    book.filename = file
+
+    return book
+
+
+
 def __readAllBookFilesInPath(path, recursive = False):
     """
     Read all file from path
@@ -353,6 +374,16 @@ def getAllRowObjectInPath(path, recursive = False):
     for b in books:
         s = __readAllSheetsWithHeaderInBook(b)
         sheets.extend(s)
+    rowObjs = []
+    for s in sheets:
+        rowObj = covertSheetRowIntoRowObjectFromSheet(s)
+        rowObjs.extend(rowObj)
+    return rowObjs
+
+
+def getAllRowObjectInBook(path):
+    book = __readAllBookFilesInBook(path)
+    sheets = __readAllSheetsWithHeaderInBook(book)
     rowObjs = []
     for s in sheets:
         rowObj = covertSheetRowIntoRowObjectFromSheet(s)

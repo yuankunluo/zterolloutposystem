@@ -103,7 +103,7 @@ def getAllBMStatusRecordInPath(path='input/po_bmstatus/'):
     rowObjList = []
     bm_sheets = []
     #get all sheets in path
-    sheets = fileReader.getAllSheetsInPath(path)
+    sheets = fileReader.getAllSheetsInPath(path, recursive=True)
     # test header
     test_header = [u'BAUMASSNAHME_ID', u'BS_FE', u'GEMEINDE_NAME',u'IST1092', u'PLZ',u'STRASSE']
     # test if this is a good bm status list
@@ -114,7 +114,8 @@ def getAllBMStatusRecordInPath(path='input/po_bmstatus/'):
         if len(header) >= 230:
             bm_sheets.append(sheet)
         else:
-            print("Error: No Header", sheet.name, sheet.filename)
+            print("Error: No BM_STATUS Header", sheet.name, sheet.filename,
+                  'Header Length', len(header))
 
     for bm_sheet in bm_sheets:
         rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)

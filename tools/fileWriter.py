@@ -15,15 +15,18 @@ import copy
 # ---------------- write -------------------------------------
 
 
-def outputObjectsToFile(objects, filename, path):
+def outputObjectsToFile(objects, filename, path, header = None):
     book = Workbook()
     sheet = book.add_sheet('Overview')
-    HEADER = []
-    for obj in objects:
-        HEADER.extend(obj.__dict__.keys())
-    HEADER = set(HEADER)
-    HEADER = list(HEADER)
-    HEADER.sort()
+    if header == None:
+        HEADER = []
+        for obj in objects:
+            HEADER.extend(obj.__dict__.keys())
+        HEADER = set(HEADER)
+        HEADER = list(HEADER)
+        HEADER.sort()
+    else:
+        HEADER = header
     rowindex = 0
     for colx in range(len(HEADER)):
         sheet.write(0, colx, HEADER[colx])
