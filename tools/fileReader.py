@@ -338,7 +338,7 @@ def clearUnicode(value):
     if value is None:
         return None
     if len(unicode(value)) == 0:
-        return None
+        return ''
     value = unicode(value)
     # replace number after .
     reg = r'\.\d*'
@@ -426,3 +426,47 @@ def getHeaderFromSheet(sheet):
 
 
 
+def __readXMLInPath(path, recursive= False, theNewestOnly=False):
+
+    if not recursive:
+        reg = '.*\.xml$'
+        books = []
+        if os.path.isdir(path):
+            files = os.listdir(path)
+            for fname in files:
+                if fname.startswith('~'):
+                    continue
+                elif fname.startswith('.'):
+                    continue
+                else:
+                    if re.match(reg, fname):
+                        book_path = path + '/' + fname
+                        book = open_workbook(book_path)
+                        book.source = book_path
+                        reg_f = '\.xls$|\.xlsx$'
+                        fname = re.sub(reg_f,'',fname)
+                        book.filename = fname
+                        for s in book.sheets():
+                            s.source = book.source
+                        books.append(book)
+            return books
+        else:
+            print('%s is not path!'%(path))
+            return []
+    else:
+        books = []
+        for root, dirname, files in os.walk(path, topdown=False):
+            if len(dirname) == 0:
+                #print("Find %d files in dir %s"%(len(files), str(root)))
+                for file in files:
+                    reg = '[^~].*\.xls$|[^~].*\.xlsx$'
+                    if re.match(reg, file):
+                        book_path = root +'/' + file
+                        #print(book_path)
+                        book = open_workbook(book_path)
+                        book.source = book_path
+                        reg_f = '\.xls$|\.xlsx$'
+                        file = re.sub(reg_f,'',file)
+                        book.filename = file
+                        books.append(book)
+        return books

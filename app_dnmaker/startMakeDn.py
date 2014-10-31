@@ -1,6 +1,6 @@
 __author__ = 'yuluo'
 
-import app_po.polistReader as por
+import app_po.polistReader as poReader
 import recordReader as sapReader
 import datetime
 import pickle
@@ -16,7 +16,7 @@ def getAllDataAndWriteToFileDict():
 
     # first read data from xls
     # the po objects from zte d
-    zte_PORecords = por.goThroughPolistDirectory(path='input/po_polist/', output=False)
+    zte_PORecords = poReader.goThroughPolistDirectory(path='input/po_polist/', output=False)
     # the sap po from zte po
     sap_PORecords = sapReader.getAllSapPoFromZTEPOInPath(path ='input/po_zte_to_sap/')
     # the delivery records from sap
@@ -73,7 +73,7 @@ def checkZTEPowithSAPLieferRecordAndOutput(fileDict):
     sap_DNRecords = [sapdn for sapdn in sap_DNRecords if sapdn.Deletion_Indicator is None]
 
     # step2: add sappo to ztepo
-    zte_PORecords = addSPAPotoZtePo(sap_PORecords, zte_PORecords)
+    zte_PORecords = poReader.addSPAPotoZtePo(sap_PORecords, zte_PORecords)
 
     # step3: compare ztepo with sappo
     # count = 0
@@ -145,7 +145,7 @@ def mixFile(fileDict):
 
     result = []
     # step0: using sappo records to fill the ztepo record
-    zte_PORecords = addSPAPotoZtePo(sap_PORecords, zte_PORecords)
+    zte_PORecords = poReader.addSPAPotoZtePo(sap_PORecords, zte_PORecords)
     # step1:
     # delete all sap_dnRedords with Delection_Indictor
     # delete all order that has still to be delivery
@@ -211,28 +211,7 @@ def addSiteIDTOSPDnRecordFromOrderBmRecord(sap_DNRecords, orbm_Records):
     return sap_DNRecords
 
 
-def addSPAPotoZtePo(sap_PORecords, zte_PORecords):
-    """
-    Find all matched SAP PO to ZTE po
 
-    :param sap_PORecords: the SAP Po records
-    :param zte_PORecords: the ZTE Po records
-    :return: modified ZTE Po Records
-    """
-    for zte_po in zte_PORecords:
-        if zte_po.SAP_PO_Nr is None: # this record must find it's sap po
-            sap_nrs = [spo.PurchNo for spo in sap_PORecords if spo.Reference_PO_Number == zte_po.ZTE_PO_Nr]
-            sap_nrs = list(set(sap_nrs))
-            if len(sap_nrs) == 1:
-                zte_po.SAP_PO_Nr = sap_nrs[0]
-                print("Find sappo", zte_po.ZTE_PO_Nr, zte_po.SAP_PO_Nr)
-        if zte_po.SAP_PO_Nr and zte_po.Site_ID and zte_po.Material_Code:
-            zte_po.Unique_SPM = '-'.join([zte_po.Site_ID, zte_po.SAP_PO_Nr, zte_po.Material_Code])
-            zte_po.Unique_PM = '-'.join([zte_po.SAP_PO_Nr, zte_po.Material_Code])
-        else:
-            zte_po.Unique_SPM = None
-            zte_po.Unique_PM = None
-    return zte_PORecords
 
 
 def addBMIDToSapDNFromOrderBmid(sap_DNRecords, orbm_Records):

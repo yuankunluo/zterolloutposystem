@@ -148,15 +148,12 @@ def readDngeHeader(sheet):
     for k in locations.keys():
         value = None
         value_list = [fileReader.getCellValueByLocation(sheet, lo) for lo in locations[k]]
-        if re.match(r'.*date.*', k): # match date
-            value = ''.join([fileReader.clearUnicode(x) for x in value_list])
-        elif re.match(r'.*[A|a]ddress.*', k):
-            value = ' '.join([unicode(x) for x in value_list])
-            reg = '\w'
-            all = re.findall(reg, value)
-            value = ''.join(all)
-        else:
-            value = ''.join([fileReader.clearUnicode(x) for x in value_list])
+        print(value_list)
+        try:
+            value_list = [v for v in value_list if v is not None]
+            value = ''.join([fileReader.clearUnicode(x) for x in value_list if x is not None])
+        except:
+            print(value)
 
         Header.__dict__[k] = value # put the k as parities
 

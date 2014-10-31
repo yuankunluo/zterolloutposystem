@@ -1,10 +1,10 @@
 __author__ = 'yuluo'
-from app_core import settings
 from tools import fileReader, fileWriter
 import datetime
 import os
 import re
 from time import gmtime, strftime
+import app_dnmaker.recordReader as rReader
 
 import logging
 import copy
@@ -24,9 +24,11 @@ class PORecord():
 
 
 
+
 # ----------- Gothrough -----------------------------------------
 
-def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO_List', outputpath='output/polist/', output = True):
+def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO_List',
+                             outputpath='output/polist/', output = True, updateWithSAPPO = False):
     """
 
     The dirctory name of the files that stored xlmx files
@@ -40,9 +42,32 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
         coverresult = __readPoRecordFromRowobje(robj)
         if coverresult:
             poObjes.extend(coverresult)
-    poObjes = [poObj for poObj in poObjes if poObj is not  None]
+    poObjes = [poObj for poObj in poObjes if poObj is not None]
+
+
+    if updateWithSAPPO:
+        poObjesNoSAP = [po for po in poObjes if po.SAP_PO_Nr is None]
+        fileWriter.outputPOList(poObjesNoSAP, filename="Temp_"+outputfile,
+                                path='output/polist_temp/', perProject=False)
+
+        print("\nZTE_POlist without SAP PO was already stored as excel file in output/polist_temp/!\n"
+              "Please use it as reference source and do Query ZZTE_PO_LIST in sap,\n"
+              "Store the result in input/po_zte_to_sap\n")
+
+        # get user input
+        user_input = raw_input("Enter [Yes] to continue, Enter No to Stop: ")
+
+        if user_input.lower() == 'yes':
+            print("Prepare to add sappo to ztepo... ")
+            try:
+                # adding sappo to ztepo
+                sap_Record = rReader.getAllSapPoFromZTEPOInPath()
+                poObjes = addSPAPotoZtePo(sap_Record, poObjes)
+            except Exception:
+                print("ZTEPO to SAP po files are not usefull!")
+                pass
     if output:
-        fileWriter.outputPOList(poObjes, outputfile, outputpath)
+        fileWriter.outputPOList(poObjes, outputfile, outputpath, perProject=True)
         print("[OK]Output %d PO Records in File %s"%(len(poObjes), outputfile))
     print("[Trans Rate]",len(poObjes), len(rowObjs), len(poObjes)-len(rowObjs))
     return poObjes
@@ -157,3 +182,25 @@ def __readPoRecordFromRowobje(rowObj):
     return result
 
 
+def addSPAPotoZtePo(sap_PORecords, zte_PORecords):
+    """
+    Find all matched SAP PO to ZTE po
+
+    :param sap_PORecords: the SAP Po records
+    :param zte_PORecords: the ZTE Po records
+    :return: modified ZTE Po Records
+    """
+    for zte_po in zte_PORecords:
+        if zte_po.SAP_PO_Nr is None: # this record must find it's sap po
+            sap_nrs = [spo.PurchNo for spo in sap_PORecords if spo.Reference_PO_Number == zte_po.ZTE_PO_Nr]
+            sap_nrs = list(set(sap_nrs))
+            if len(sap_nrs) == 1:
+                zte_po.SAP_PO_Nr = sap_nrs[0]
+                print("Find sappo", zte_po.ZTE_PO_Nr, zte_po.SAP_PO_Nr)
+        if zte_po.SAP_PO_Nr and zte_po.Site_ID and zte_po.Material_Code:
+            zte_po.Unique_SPM = '-'.join([zte_po.Site_ID, zte_po.SAP_PO_Nr, zte_po.Material_Code])
+            zte_po.Unique_PM = '-'.join([zte_po.SAP_PO_Nr, zte_po.Material_Code])
+        else:
+            zte_po.Unique_SPM = None
+            zte_po.Unique_PM = None
+    return zte_PORecords

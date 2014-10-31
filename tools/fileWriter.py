@@ -51,7 +51,7 @@ def __writePoRecords(poRecorsList, filename='poRecordList', path = 'output'):
 
 
 
-def outputPOList(Objects, filename = 'POLIST', path='output'):
+def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False):
     """
     Write Objects into xls
 
@@ -137,36 +137,36 @@ def outputPOList(Objects, filename = 'POLIST', path='output'):
             rowIndex+=1
     book.save(path + filename + '_'+tims+ '.xls')
 
-
+    if perProject:
     # output per file
-    filenamesList = [poObj.Filename for poObj in allPosList]
-    filenamesList = set(filenamesList)
-    filenamesList = list(filenamesList)
-    for fn in filenamesList:
-        # build book
-        fn_clean = "ALL_Project_"+ re.sub('[^a-zA-Z]|DE|PO|[Ll]ist','',fn)
-        #print(fn, fn_clean)
-        book = Workbook()
-        sheet = book.add_sheet(fn_clean[:25])
-        poObjs = [poObj for poObj in allPosList if poObj.Filename == fn]
-        # write header
-        for hx in range(len(header)):
-            sheet.write(0, hx, unicode(header[hx]))
-        rowIndex = 1
-        for po in poObjs:
-            for cx in range(len(header)):
-                try:
-                    sheet.write(rowIndex, cx, unicode(po.__dict__[header[cx]]))
-                except:
-                    continue
-            rowIndex+=1
-        book.save(path + fn_clean+"_PO_List_"+tims + '.xls')
-        print("Output Project PO book:", fn_clean+"_"+tims)
+        filenamesList = [poObj.Filename for poObj in allPosList]
+        filenamesList = set(filenamesList)
+        filenamesList = list(filenamesList)
+        for fn in filenamesList:
+            # build book
+            fn_clean = "ALL_Project_"+ re.sub('[^a-zA-Z]|DE|PO|[Ll]ist','',fn)
+            #print(fn, fn_clean)
+            book = Workbook()
+            sheet = book.add_sheet(fn_clean[:25])
+            poObjs = [poObj for poObj in allPosList if poObj.Filename == fn]
+            # write header
+            for hx in range(len(header)):
+                sheet.write(0, hx, unicode(header[hx]))
+            rowIndex = 1
+            for po in poObjs:
+                for cx in range(len(header)):
+                    try:
+                        sheet.write(rowIndex, cx, unicode(po.__dict__[header[cx]]))
+                    except:
+                        continue
+                rowIndex+=1
+            book.save(path + fn_clean+"_PO_List_"+tims + '.xls')
+            print("Output Project PO book:", fn_clean+"_"+tims)
 
 
 
 
-def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_Report_', path='output/dnge/' ):
+def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_REPORT_', path='output/dnge/' ):
     """
 
     :param dngRecords:
