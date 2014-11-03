@@ -338,7 +338,7 @@ def clearUnicode(value):
     if value is None:
         return None
     if len(unicode(value)) == 0:
-        return ''
+        return None
     value = unicode(value)
     # replace number after .
     reg = r'\.\d*'

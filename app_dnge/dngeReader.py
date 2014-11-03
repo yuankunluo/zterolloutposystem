@@ -146,16 +146,29 @@ def readDngeHeader(sheet):
     }
 
     for k in locations.keys():
+        # value = None
+        # value_list = [fileReader.getCellValueByLocation(sheet, lo) for lo in locations[k]]
+        # print(value_list)
+        #
+        # value_list = [v for v in value_list if v is not None]
+        # value = ''.join([fileReader.clearUnicode(x) for x in value_list if x is not None])
+        #
+        # print(value)
+        #
+        # Header.__dict__[k] = value # put the k as parities
         value = None
         value_list = [fileReader.getCellValueByLocation(sheet, lo) for lo in locations[k]]
-        print(value_list)
+        value_list = [fileReader.clearUnicode(v) for v in value_list]
+        value_list = [v for v in value_list if v is not None]
+        # get the string of value
         try:
-            value_list = [v for v in value_list if v is not None]
-            value = ''.join([fileReader.clearUnicode(x) for x in value_list if x is not None])
-        except:
-            print(value)
+            value = ''.join(value_list)
+            # put the k as parities
+        except Exception:
+            print("Error", k, value_list)
+        Header.__dict__[k] = value
 
-        Header.__dict__[k] = value # put the k as parities
+
 
     Header.Yearnr, Header.Weeknr, Header.Weekdaynr , Header.Date = __getDngeYearNrWeekNrWeekdayDatestringFromSheet(sheet)
     Header.Source = sheet.source
