@@ -179,8 +179,9 @@ def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_REPORT_', pat
     HEADER = ['DN_NO', u'SITE_ID', u'bmid', 'Applicant' ,'Phone_NO2','Phone_NO1','Carrier','Consignee',
               'Original_Warehouse', u'no', u'packageno',
               u'bomno', u'detaildescription', u'qty', u'unit',u'remark',
-              'Destination_Address','Source','Yearnr', 'Weeknr','Weekdaynr','Date']
-
+              'Destination_Address','Source',
+              #'Yearnr', 'Weeknr','Weekdaynr','Date'
+    ]
 
     if weekly: # output weekly report
         # get week nrs in dngRecords

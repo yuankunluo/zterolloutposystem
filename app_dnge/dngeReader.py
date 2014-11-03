@@ -114,6 +114,13 @@ def __prepareFoWriting(dngs):
                         if dngr.SITE_ID != ma.group(0):
                             dngr.SITE_ID = ma.group(0)
             dng_records.append(dngr)
+    # cover number to integer
+    for dng in dng_records:
+        for k, v in dng.__dict__.items():
+            reg_int = '(^\d+$)'
+            if isinstance(v, unicode) and k != 'SITE_ID':
+                if re.match(reg_int, v):
+                    dng.__dict__[k] = int(v)
     return dng_records
 
 
@@ -167,8 +174,6 @@ def readDngeHeader(sheet):
         except Exception:
             print("Error", k, value_list)
         Header.__dict__[k] = value
-
-
 
     Header.Yearnr, Header.Weeknr, Header.Weekdaynr , Header.Date = __getDngeYearNrWeekNrWeekdayDatestringFromSheet(sheet)
     Header.Source = sheet.source
