@@ -94,6 +94,7 @@ def __readAllBookFilesInPath(path, recursive = False):
     :return: all books objects
     """
 
+    bookCount = 0
     if not recursive:
         reg = '.*\.xls$|.*\.xlsx$'
         books = []
@@ -105,9 +106,11 @@ def __readAllBookFilesInPath(path, recursive = False):
                 elif fname.startswith('.'):
                     continue
                 else:
-                    if re.match(reg, fname):
+                    if re.match(reg, fname.lower(), re.IGNORECASE):
                         book_path = path + '/' + fname
                         book = open_workbook(book_path)
+                        bookCount += 1
+                        print("Open Workbook", fname)
                         book.source = book_path
                         reg_f = '\.xls$|\.xlsx$'
                         fname = re.sub(reg_f,'',fname)
@@ -115,6 +118,7 @@ def __readAllBookFilesInPath(path, recursive = False):
                         for s in book.sheets():
                             s.source = book.source
                         books.append(book)
+            print("Read %d excels files"%(bookCount))
             return books
         else:
             print('%s is not path!'%(path))
@@ -126,15 +130,18 @@ def __readAllBookFilesInPath(path, recursive = False):
                 #print("Find %d files in dir %s"%(len(files), str(root)))
                 for file in files:
                     reg = '[^~].*\.xls$|[^~].*\.xlsx$'
-                    if re.match(reg, file):
+                    if re.match(reg, file.lower(), re.IGNORECASE):
                         book_path = root +'/' + file
                         #print(book_path)
                         book = open_workbook(book_path)
+                        bookCount += 1
+                        print("Open Workbook", file)
                         book.source = book_path
                         reg_f = '\.xls$|\.xlsx$'
                         file = re.sub(reg_f,'',file)
                         book.filename = cleanString(file)
                         books.append(book)
+        print("Read %d excels files"%(bookCount))
         return books
 
 
