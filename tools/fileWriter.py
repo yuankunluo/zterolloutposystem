@@ -226,6 +226,7 @@ def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_REPORT_', pat
                     except Exception:
                         pass
                 rowIndex += 1
+
         book.save(path + filename + '.xls')
         print("Output Weekly Report %s in %s"%(filename, path))
     else:

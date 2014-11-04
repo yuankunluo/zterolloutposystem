@@ -38,7 +38,9 @@ class DNGEContentRecord(object):
 # -------------------------
 
 
-def goThroughDirectory(path , weekly = False, yearNr = None, weekNr = None, date = None, weekDayNr = None,  recursive = True):
+def goThroughDirectory(path , weekly = False, yearNr = None,
+                       weekNr = None, date = None, weekDayNr = None,  recursive = True,
+                       output = True):
     """
 
     :param path:
@@ -79,9 +81,9 @@ def goThroughDirectory(path , weekly = False, yearNr = None, weekNr = None, date
         dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr]
 
 
-
-    # writing file
-    fileWriter.outputDngeReport(dng_records, weekly)
+    if output:
+        # writing file
+        fileWriter.outputDngeReport(dng_records, weekly)
     return dng_records
 
 
@@ -104,9 +106,10 @@ def __prepareFoWriting(dngs):
             # test if content has neid field
             if 'neid' in dngc.__dict__.keys(): # has neid
                 neid = fileReader.clearUnicode(dngc.neid)
-                #print('neid', neid)
-                if re.match(reg_neid, neid):
-                    dngr.SITE_ID = neid
+                if neid:
+                    #print('neid', neid)
+                    if re.match(reg_neid, neid):
+                        dngr.SITE_ID = neid
             else: # if has not neid, then match remark
                 if 'remark' in dngc.__dict__.keys():
                     ma = re.match(reg_neid, unicode(dngc.remark))
@@ -114,13 +117,16 @@ def __prepareFoWriting(dngs):
                         if dngr.SITE_ID != ma.group(0):
                             dngr.SITE_ID = ma.group(0)
             dng_records.append(dngr)
-    # cover number to integer
+
+    # # cover number to integer
     for dng in dng_records:
         for k, v in dng.__dict__.items():
-            reg_int = '(^\d+$)'
-            if isinstance(v, unicode) and k != 'SITE_ID':
-                if re.match(reg_int, v):
-                    dng.__dict__[k] = int(v)
+            if k not in ['Yearnr','Weeknr','Weekdaynr','Date','SITE_ID',]:
+                if isinstance(v, unicode) or isinstance(v, str):
+                    value = fileReader.cleanString(v)
+                    dng.__dict__[k] = value
+                    continue
+
     return dng_records
 
 
@@ -221,7 +227,7 @@ def readDngeContent(sheet):
         elif len(r_string) < 30:
             continue
         else:
-            row = [c.value for c in sheet.row(rowx)]
+            row = [fileReader.clearUnicode(c.value) for c in sheet.row(rowx)]
             r = [(x,y) for (x,y) in zip(header, row)]
             r.append(('rowindex',rowx))
             temp.append(r)

@@ -111,9 +111,9 @@ def __readAllBookFilesInPath(path, recursive = False):
                         book.source = book_path
                         reg_f = '\.xls$|\.xlsx$'
                         fname = re.sub(reg_f,'',fname)
-                        book.filename = fname
+                        book.filename = cleanString(fname)
                         for s in book.sheets():
-                            s.source = book.source
+                            s.source = cleanString(book.source)
                         books.append(book)
             return books
         else:
@@ -133,7 +133,7 @@ def __readAllBookFilesInPath(path, recursive = False):
                         book.source = book_path
                         reg_f = '\.xls$|\.xlsx$'
                         file = re.sub(reg_f,'',file)
-                        book.filename = file
+                        book.filename = cleanString(file)
                         books.append(book)
         return books
 
@@ -341,8 +341,12 @@ def clearUnicode(value):
         return None
     value = unicode(value)
     # replace number after .
-    reg = r'\.\d*'
+    reg = r'\.0$'
     value = re.sub(reg,'',value)
+    if not re.match('^\d+$', value):
+        value = cleanString(value)
+        #print("Clean String", value)
+    #print("Clean Unicode", value)
     return value
 
 def cleanString(value):
@@ -357,13 +361,16 @@ def cleanString(value):
     try:
         value = unicode(value)
     except Exception:
-        pass
-    value = re.sub('\s+','_', value) # blank
-    value = re.sub('\_{2,}','_', value) # _
-    value = re.sub('[()]','',value) # ()
-    reg = '[^a-zA-Z0-9_]'
+        print("Error: clearString()", value)
+        return None
+    # replace non alphbet letter
+    reg = '[^a-zA-Z0-9_ ]'
     value = re.sub(reg,'', value)
-    return value
+    # replace ()
+    value = re.sub('[()]','',value) # ()
+    # split string using blank
+    value = re.split('\s+', value)
+    return ' '.join(value)
 
 
 
@@ -470,3 +477,11 @@ def __readXMLInPath(path, recursive= False, theNewestOnly=False):
                         book.filename = file
                         books.append(book)
         return books
+
+
+
+def test(dng):
+    for d in dng:
+        for k, v in d.__dict__.items():
+            if not isinstance(v, unicode):
+                print(k, v, type(v))
