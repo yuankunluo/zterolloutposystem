@@ -34,7 +34,7 @@ def __readAllHeadersFromBook(book):
     header_list = []
     for sheet in sheets:
         try:
-            HEADER = [cleanString(unicode(c.value)) for c in sheet.row(0)]
+            HEADER = [clearHeader(unicode(c.value)) for c in sheet.row(0)]
             header_list.extend(HEADER)
         except Exception:
             print("[Error]:No Header \nin nsheet %s \nin boook %s \nsource %s"%(sheet.name, sheet.filename, sheet.source))
@@ -113,7 +113,7 @@ def __readAllBookFilesInPath(path, recursive = False):
                         fname = re.sub(reg_f,'',fname)
                         book.filename = cleanString(fname)
                         for s in book.sheets():
-                            s.source = cleanString(book.source)
+                            s.source = book.source
                         books.append(book)
             return books
         else:
@@ -200,7 +200,7 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
     :return: a list of excel row object
     """
     result = []
-    HEADER = [cleanString(unicode(c.value)) for c in sheet.row(0)]
+    HEADER = [clearHeader(unicode(c.value)) for c in sheet.row(0)]
     # delete empty header cell
     for rowx in range(1,sheet.nrows):
         # test this row's empty
@@ -364,7 +364,7 @@ def cleanString(value):
         print("Error: clearString()", value)
         return None
     # replace non alphbet letter
-    reg = '[^a-zA-Z0-9_ ]'
+    reg = '[^a-zA-Z0-9 ]'
     value = re.sub(reg,'', value)
     # replace ()
     value = re.sub('[()]','',value) # ()
@@ -426,11 +426,16 @@ def getAllSheetsInPath(path, recursive = False):
 def getHeaderFromSheet(sheet):
     header = []
     if sheet.nrows != 0:
-        header = [cleanString(unicode(c.value)) for c in sheet.row(0)]
+        header = [clearHeader(unicode(c.value)) for c in sheet.row(0)]
         return header
     else:
         return header
 
+
+def clearHeader(value):
+    string = cleanString(value)
+    value = re.sub('\s+','_', string)
+    return value
 
 
 def __readXMLInPath(path, recursive= False, theNewestOnly=False):
