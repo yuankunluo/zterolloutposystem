@@ -1,9 +1,11 @@
 __author__ = 'yuluo'
 import tools.fileReader as fileReader
+import tools.fileWriter as fileWriter
 import pickle
 import datetime
 import os
 import re
+
 
 class DeliveryRecord(object):
     pass
@@ -12,20 +14,23 @@ class DeliveryRecord(object):
 class BMStatusRecord(object):
     pass
 
-class SAPPORecord(object):
+class SAPReferencePORecord(object):
     pass
 
 class OrderBmidRecord(object):
     pass
 
+class ZTEPoRecord(object):
+    pass
 
 
-def __getAllSapPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
+
+def getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
     rows = fileReader.getAllRowObjectInPath(path)
     sappoObjects = []
 
     for drRow in rows:
-        sapPO = SAPPORecord()
+        sapPO = SAPReferencePORecord()
         for k, v in drRow.__dict__.items():
             sapPO.__dict__[k] = fileReader.clearUnicode(v)
         sappoObjects.append(sapPO)
@@ -33,7 +38,53 @@ def __getAllSapPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
     return sappoObjects
 
 
+def getAllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
+                                      referencepopath = 'input/po_zte_to_sap/', output=False):
+    rows = fileReader.getAllRowObjectInPath(ztepopath)
+    ztePos = []
+    # initialize ztePos
+    for row in rows:
+        ztePo = ZTEPoRecord()
+        for k, v in row.__dict__.items():
+            ztePo.__dict__[k] = fileReader.clearUnicode(v)
+        ztePos.append(ztePo)
+    count = len(ztePos)
 
+    # get references po
+    ref_Pos = getAllSapReferencesPoFromZTEPOInPath()
+    ref_list = list(set([(ref.Reference_PO_Number, ref.PurchNo) for ref in ref_Pos]))
+
+    # add on sappo to ztepo
+    for zpo in ztePos:
+        if not zpo.SAP_PO_Nr:
+            refs = [ref.PurchNo for ref in ref_Pos if ref.Reference_PO_Number == zpo.ZTE_PO_Nr]
+            refs = set(refs)
+            if len(refs) == 1:
+                zpo.SAP_PO_Nr = refs.pop()
+            elif len(refs) == 0:
+                print("Error: find more or none SAP po for reference", zpo.ZTE_PO_Nr, refs)
+            else:
+                pass
+    # get useful  zte po
+    cleanZpos = [po for po in ztePos if po.ZTE_PO_Nr is not None
+            and po.Material_Code is not None
+            and po.Qty is not None
+            and po.Site_ID is not None
+            and po.SAP_PO_Nr is not None]
+
+    count2 = len(cleanZpos)
+
+    # output error po
+    errorpos = []
+    for zpo in ztePos:
+        if zpo not in cleanZpos:
+            errorpos.append(zpo)
+    fileWriter.outputObjectsToFile(errorpos,'Problem_ZTEPO','output/error/')
+
+    if output:
+        storeRawData(ztePos, 'zte_pos')
+    print("ZTE Po list ok rate", count2, count)
+    return cleanZpos
 
 
 
@@ -52,7 +103,7 @@ def getAllSapOrderBmidInPath(path = 'input/po_oder_bmid/'):
 
     for drRow in rows:
         sapPO = OrderBmidRecord()
-        sapPO = initWithAttrs(sapPO, attris)
+        sapPO = initWithAttrsToNone(sapPO, attris)
         for k, v in drRow.__dict__.items():
             if k in attris:
                 sapPO.__dict__[k] = fileReader.clearUnicode(v)
@@ -95,7 +146,7 @@ def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Fals
 
     for drRow in drRows:
         drobj = DeliveryRecord()
-        drobj = initWithAttrs(drobj, attrs)
+        drobj = initWithAttrsToNone(drobj, attrs)
         for k, v in drRow.__dict__.items():
             if k in attrs:
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
@@ -146,12 +197,11 @@ def getAllBMStatusRecordInPath(path='input/po_bmstatus/', output=False):
 
     for rowObj in rowObjList:
         bmObj = BMStatusRecord()
-        bmObj = initWithAttrs(bmObj, attris)
+        bmObj = initWithAttrsToNone(bmObj, attris)
         for k, v in rowObj.__dict__.items():
             if k in attris:
                 bmObj.__dict__[k] = fileReader.clearUnicode(v)
         bmObjects.append(bmObj)
-
 
     if output:
         storeRawData(bmObjects,'bm_status')
@@ -161,7 +211,7 @@ def getAllBMStatusRecordInPath(path='input/po_bmstatus/', output=False):
 
 
 
-def initWithAttrs(obj, attrisList):
+def initWithAttrsToNone(obj, attrisList):
     for k in attrisList:
         obj.__dict__[k] = None
     return obj

@@ -347,6 +347,8 @@ def clearUnicode(value):
     if len(unicode(value)) == 0:
         return None
     value = unicode(value)
+    if re.match('none|n.*a', value, re.IGNORECASE):
+        return None
     # replace number after .
     reg = r'\.0$'
     value = re.sub(reg,'',value)
@@ -499,34 +501,43 @@ def test(dng):
                 print(k, v, type(v))
 
 
-def getTheNewestFileLocationInPath(path, fileRegx=None, recursively = False):
-    filelist = os.listdir(path)
-    for fn in filelist:
-        # delete dir
-        fullpath = os.path.join(path, fn)
-        if os.path.isdir(fullpath):
-            filelist.remove(fn)
-            continue
-    if fileRegx and isinstance(fileRegx, str):
-        for fn in filelist:
-            if not re.match(fileRegx, fn, re.IGNORECASE):
-                print("Not Match Filename", fileRegx, fn)
-                filelist.remove(fn)
-    max_mtime = 0
-    max_file = None
+def getTheNewestFileLocationInPath(path, fileNameRegx=None,
+                                   recursively = False, fileExtentionRegx = None):
+    filesList = []
     if not recursively:
-        for fn in filelist:
+        for fn in os.listdir(path):
             fullpath = os.path.join(path, fn)
-            tem_mtime = os.stat(fullpath).st_mtime
-            if tem_mtime > max_mtime:
-                max_file = fn
-        return os.path.join(path, max_file)
+            if not os.path.isdir(fullpath):
+                fTupe = (fn, fullpath)
+                filesList.append(fTupe)
     else:
         for dirname,subdirs,files in os.walk(path):
             for fname in files:
                 full_path = os.path.join(dirname, fname)
-                mtime = os.stat(full_path).st_mtime
-                if mtime > max_mtime:
-                    max_mtime = mtime
-                    max_file = fname
-        return os.path.join(path, max_file)
+                fTupe = (fname, full_path)
+                filesList.append(fTupe)
+
+    for fTupe in filesList:
+        fname = fTupe[0]
+        if fileNameRegx and fileExtentionRegx:
+            if (not re.match(fileNameRegx, fname, re.IGNORECASE)) and (not re.match(
+                    fileExtentionRegx, fname, re.IGNORECASE)):
+                filesList.remove(fTupe)
+                continue
+        if fileNameRegx:
+            if not re.match(fileNameRegx, fname, re.IGNORECASE):
+                filesList.remove(fTupe)
+                continue
+        if fileExtentionRegx:
+            if not re.match(fileExtentionRegx, fname, re.IGNORECASE):
+                filesList.remove(fTupe)
+                continue
+    max_mtime = 0
+    max_file = None
+    for fTupe in filesList:
+        fullpath = fTupe[1]
+        mtime = os.stat(fullpath).st_mtime
+        if mtime > max_mtime:
+            max_mtime = mtime
+            max_file = fullpath
+    return  max_file

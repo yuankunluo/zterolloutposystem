@@ -37,7 +37,10 @@ def outputObjectsToFile(objects, filename, path, header = None):
             except Exception:
                 continue
         rowindex += 1
-    book.save(path + filename + '.xls')
+    try:
+        book.save(path + filename + '.xls')
+    except Exception:
+        print("Error: outputObjectsToFile")
 
 
 
