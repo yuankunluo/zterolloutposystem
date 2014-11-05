@@ -137,6 +137,9 @@ def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False
             rowIndex+=1
     book.save(path + filename + '_'+tims+ '.xls')
 
+    # store the newest po list into input/po_newest_polist
+    book.save('input/po_newest_polist' + 'All_ZTE_PO_LIST.xls')
+
     if perProject:
     # output per file
         filenamesList = [poObj.Filename for poObj in allPosList]

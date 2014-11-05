@@ -1,6 +1,9 @@
 __author__ = 'yuluo'
 import tools.fileReader as fileReader
-
+import pickle
+import datetime
+import os
+import re
 
 class DeliveryRecord(object):
     pass
@@ -17,7 +20,7 @@ class OrderBmidRecord(object):
 
 
 
-def getAllSapPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
+def __getAllSapPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
     rows = fileReader.getAllRowObjectInPath(path)
     sappoObjects = []
 
@@ -28,6 +31,10 @@ def getAllSapPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
         sappoObjects.append(sapPO)
 
     return sappoObjects
+
+
+
+
 
 
 def getAllSapOrderBmidInPath(path = 'input/po_oder_bmid/'):
@@ -54,12 +61,13 @@ def getAllSapOrderBmidInPath(path = 'input/po_oder_bmid/'):
 
 
 
-def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/'):
+def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=False):
     """
     Reads the sap output using ME2L, with vendor nr: 5043096
     Change to account_view and layout, to put all header in table.
 
     :param path:
+
     :return:
     """
 
@@ -77,6 +85,7 @@ def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/'):
         u'Purchasing_Info_Rec',
         u'Still_to_be_delivered_qty',
         u'Short_Text',
+        u'Unique_PO_MC'
         ]
 
 
@@ -90,13 +99,24 @@ def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/'):
         for k, v in drRow.__dict__.items():
             if k in attrs:
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
-        drobj.Unique_PM = '-'.join([drobj.Purchasing_Document, drobj.Material])
+        try:
+            drobj.Unique_PO_MC = '-'.join([drobj.Purchasing_Document, drobj.Material])
+        except Exception:
+            print("Error: Unique_PO_MC", drobj.Purchasing_Document, drobj.Material)
         drObjects.append(drobj)
 
+    count_all = len(drObjects)
+    drObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None]
+    count_del = len(drObjects)
+    drObjects = [dn for dn in drObjects if int(dn.Still_to_be_delivered_qty) != 0]
+    print('All SAP_DN', count_all, ' To be delivery', len(drObjects))
+
+    if output:
+        storeRawData(drObjects, 'sap_dn')
     return drObjects
 
 
-def getAllBMStatusRecordInPath(path='input/po_bmstatus/'):
+def getAllBMStatusRecordInPath(path='input/po_bmstatus/', output=False):
 
     bmObjects = []
 
@@ -130,8 +150,12 @@ def getAllBMStatusRecordInPath(path='input/po_bmstatus/'):
         for k, v in rowObj.__dict__.items():
             if k in attris:
                 bmObj.__dict__[k] = fileReader.clearUnicode(v)
-        bmObj.Unique_BM_BS = '-'.join([bmObj.BAUMASSNAHME_ID, bmObj.BS_FE])
         bmObjects.append(bmObj)
+
+
+    if output:
+        storeRawData(bmObjects,'bm_status')
+
     return bmObjects
 
 
@@ -146,4 +170,24 @@ def __contains(small, big):
     smallset = set(small)
     bigset = set(big)
     return smallset.issubset(bigset)
+
+def loadRawData(path):
+    fileDict = None
+    with open(path, 'rb') as f:
+        fileDict = pickle.load(f)
+    return fileDict
+
+def storeRawData(object, filename, path='input/raw/'):
+    tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    try:
+        with open(path + filename + "_" + tims + '.raw', 'wb') as f:
+            pickle.dump(object, f)
+        print("Store Objects in " +  path + filename + "_" + tims + '.raw')
+    except Exception:
+        print(Exception.message)
+        print("Error:storeRawData," + path + filename + "_" + tims + '.raw')
+
+
+
+
 

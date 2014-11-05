@@ -61,7 +61,7 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
             print("Prepare to add sappo to ztepo... ")
             try:
                 # adding sappo to ztepo
-                sap_Record = rReader.getAllSapPoFromZTEPOInPath()
+                sap_Record = rReader.__getAllSapPoFromZTEPOInPath()
                 poObjes = addSPAPotoZtePo(sap_Record, poObjes)
             except Exception:
                 print("ZTEPO to SAP po files are not usefull!")

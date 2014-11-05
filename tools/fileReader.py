@@ -371,7 +371,7 @@ def cleanString(value):
         print("Error: clearString()", value)
         return None
     # replace non alphbet letter
-    reg = '[^a-zA-Z0-9 ]'
+    reg = '[^a-zA-Z0-9_ ]'
     value = re.sub(reg,'', value)
     # replace ()
     value = re.sub('[()]','',value) # ()
@@ -497,3 +497,36 @@ def test(dng):
         for k, v in d.__dict__.items():
             if not isinstance(v, unicode):
                 print(k, v, type(v))
+
+
+def getTheNewestFileLocationInPath(path, fileRegx=None, recursively = False):
+    filelist = os.listdir(path)
+    for fn in filelist:
+        # delete dir
+        fullpath = os.path.join(path, fn)
+        if os.path.isdir(fullpath):
+            filelist.remove(fn)
+            continue
+    if fileRegx and isinstance(fileRegx, str):
+        for fn in filelist:
+            if not re.match(fileRegx, fn, re.IGNORECASE):
+                print("Not Match Filename", fileRegx, fn)
+                filelist.remove(fn)
+    max_mtime = 0
+    max_file = None
+    if not recursively:
+        for fn in filelist:
+            fullpath = os.path.join(path, fn)
+            tem_mtime = os.stat(fullpath).st_mtime
+            if tem_mtime > max_mtime:
+                max_file = fn
+        return os.path.join(path, max_file)
+    else:
+        for dirname,subdirs,files in os.walk(path):
+            for fname in files:
+                full_path = os.path.join(dirname, fname)
+                mtime = os.stat(full_path).st_mtime
+                if mtime > max_mtime:
+                    max_mtime = mtime
+                    max_file = fname
+        return os.path.join(path, max_file)

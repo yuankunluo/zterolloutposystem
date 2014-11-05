@@ -7,4 +7,6 @@ output/**/*.xls
 output/**/*.xlsx
 output/**/*.data
 **/*.pyc
+**/*.raw
+**/*/data
 
