@@ -122,6 +122,7 @@ def __readPoRecordFromRowobje(rowObj):
      'Site_ID':'Site_ID$',
      'SN':'SN$',
      'SAP_PO_Nr':'SAP_PONR',# Additional Parities
+     'Origin_Mcode':'Origin_Mcode',
     }
 
     poObj = PORecord()
@@ -150,10 +151,14 @@ def __readPoRecordFromRowobje(rowObj):
                 else:
                     poObj.__dict__[k] = fileReader.clearUnicode(rowObj.__dict__[objk])
 
+
     result = []
-    problemPO = []
     if poObj.ZTE_PO_Nr and poObj.Material_Code and poObj.Site_ID and poObj.Qty:
-        reg_splt_m = '[^0-9]'
+        # if zte po is also the sap po
+        if re.match('^3\d+$', poObj.ZTE_PO_Nr, re.IGNORECASE):
+            poObj.SAP_PO_Nr = poObj.ZTE_PO_Nr
+        poObj.Origin_Mcode = poObj.Material_Code
+        reg_splt_m = '[^0-9]+'
         mc_list = re.split(reg_splt_m, poObj.Material_Code, re.IGNORECASE)
         qty_list = re.split(reg_splt_m, poObj.Qty, re.IGNORECASE)
         # compare mclist and qty_list

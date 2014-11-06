@@ -45,9 +45,9 @@ def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
     return sappoObjects
 
 
-def get1_AllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
+def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist',
                                       referencepopath = 'input/po_zte_to_sap/', output=False):
-    rows = fileReader.getAllRowObjectInPath(ztepopath)
+    rows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(ztepopath))
     ztePos = []
     # initialize ztePos
     for row in rows:
@@ -56,14 +56,15 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
             ztePo.__dict__[k] = fileReader.clearUnicode(v)
         ztePos.append(ztePo)
     count = len(ztePos)
+    print("Read %d ZTEPO from polist"%(count))
 
     # get references po
     ref_Pos = __getAllSapReferencesPoFromZTEPOInPath()
     ref_list = list(set([(ref.Reference_PO_Number, ref.PurchNo) for ref in ref_Pos]))
-
     cleanZpos = []
     # add on sappo to ztepo
-    noSAPCount = 0
+    matchCount = 0
+    nonmacthCount = 0
     for zpo in ztePos:
         if not zpo.SAP_PO_Nr:
             refs = [ref.PurchNo for ref in ref_Pos if ref.Reference_PO_Number == zpo.ZTE_PO_Nr]
@@ -72,24 +73,28 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
                 # only one found
                 zpo.SAP_PO_Nr = refs.pop()
                 cleanZpos.append(zpo)
+                matchCount += 1
             elif len(refs) == 0:
                 # no one found
-                # print("Error: find none SAP po for reference", zpo.ZTE_PO_Nr, refs)
-                noSAPCount += 1
+                #print("Error: find none SAP po for reference", zpo.ZTE_PO_Nr, refs)
+                nonmacthCount += 1
             else: # zte po and sap po not 1 one to one
                 print("Warning: found one ZTE PO to more refs",zpo.ZTE_PO_Nr, refs)
                 for ref in refs:
                     newZPO = copy.deepcopy(zpo)
                     newZPO.SAP_PO_Nr = ref
                     cleanZpos.append(newZPO)
-
+                    matchCount += 1
+        else:
+            cleanZpos.append(zpo)
+    print("Match Count", matchCount, "Nonmatch Count", nonmacthCount)
     # get useful  zte po
     cleanZpos = [po for po in cleanZpos
-                if po.ZTE_PO_Nr is not None
-                and po.Material_Code is not None
-                and po.Qty is not None
-                and po.Site_ID is not None
-                and po.SAP_PO_Nr is not None]
+                if po.ZTE_PO_Nr
+                and po.Material_Code
+                and po.Qty
+                and po.Site_ID
+                and po.SAP_PO_Nr]
 
     dirtyZpos = []
     for zpo in ztePos:
@@ -100,7 +105,8 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
     count2 = len(cleanZpos)
 
     if output:
-        storeRawData(cleanZpos, 'Raw_1_zte_pos')
+        storeRawData(cleanZpos, 'Raw_1_ztepos')
+        fileWriter.outputObjectsToFile(cleanZpos,'Step_1_ztepos','output/dn_maker/')
     print("ZTE Po list ok rate", count2, count)
     return cleanZpos
 
@@ -255,12 +261,12 @@ def loadRawData(path):
 def storeRawData(object, filename, path='input/raw/'):
     tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     try:
-        with open(path + filename + "_" + tims + '.raw', 'wb') as f:
+        with open(path + filename+ '.raw', 'wb') as f:
             pickle.dump(object, f)
-        print("Store Objects in " +  path + filename + "_" + tims + '.raw')
+        print("Store Objects in " +  path + filename +'.raw')
     except Exception:
         print(Exception.message)
-        print("Error:storeRawData," + path + filename + "_" + tims + '.raw')
+        print("Error:storeRawData," + path + filename + '.raw')
 
 
 def deleteDuplicate(objectsList):

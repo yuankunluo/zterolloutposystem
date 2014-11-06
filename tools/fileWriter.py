@@ -75,6 +75,7 @@ def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False
             # 'BMID',
             # 'PMR',
             'Material_Code',
+            'Origin_Mcode',
             'Product_Description',
             'Qty',
             'Delivery_Address','Delivery_Date',
@@ -94,6 +95,7 @@ def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False
             # 'SN',
             # 'Rowindex',
             # 'SAP_Deleted',
+
     ]
     outputObjectsToFile(Objects,filename,'output/polist/', header = HEADER )
 
