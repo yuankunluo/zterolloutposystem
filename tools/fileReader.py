@@ -19,7 +19,13 @@ import xlxsreader as xlr
 class ExcelRowObject(object):
 
     def __eq__(self, other):
-        if self.__dict__ == other.__dict__:
+        keys = ['Source', 'Rowindex', 'Filename']
+        myDict = self.__dict__
+        othDict = other.__dict__
+        for k in keys:
+            myDict.pop(k)
+            othDict.pop(k)
+        if myDict == othDict:
             return True
         else:
             return False

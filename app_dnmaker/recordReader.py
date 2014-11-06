@@ -46,7 +46,7 @@ def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
 
 
 def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist',
-                                      referencepopath = 'input/po_zte_to_sap/', output=False):
+                                      referencepopath = 'input/po_zte_to_sap/', output=True):
     rows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(ztepopath))
     ztePos = []
     # initialize ztePos
@@ -112,7 +112,7 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist',
 
 
 
-def get2_AllSapOrderBmidInPath(path = 'input/po_oder_bmid/', output = False):
+def get2_AllSapOrderBmidInPath(path = 'input/po_oder_bmid/', output = True):
 
     attris = [u'Purchase_order_number',
              u'Description',
@@ -142,7 +142,7 @@ def get2_AllSapOrderBmidInPath(path = 'input/po_oder_bmid/', output = False):
 
 
 
-def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=False):
+def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=True):
     """
     Reads the sap output using ME2L, with vendor nr: 5043096
     Change to account_view and layout, to put all header in table.
@@ -274,7 +274,7 @@ def deleteDuplicate(objectsList):
     for obj in objectsList:
         if obj not in result:
             result.append(obj)
-        else:
-            print(obj.__dict__)
+        # else:
+        #     print(obj.__dict__)
     print("Duplicate Rate:", len(objectsList)- len(result), len(objectsList))
     return result
