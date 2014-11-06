@@ -351,15 +351,11 @@ def clearUnicode(value):
     if len(unicode(value)) == 0:
         return None
     value = unicode(value)
-    if re.match('none|n.*a', value, re.IGNORECASE):
+    if re.match('none|n.*a|n.*v|error', value, re.IGNORECASE):
         return None
     # replace number after .
     reg = r'\.0$'
     value = re.sub(reg,'',value)
-    if not re.match('^\d+$', value):
-        value = cleanString(value)
-        #print("Clean String", value)
-    #print("Clean Unicode", value)
     return value
 
 def cleanString(value):

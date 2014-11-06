@@ -68,7 +68,7 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
                 pass
     if output:
         fileWriter.outputPOList(poObjes, outputfile, outputpath, perProject=True)
-        print("[OK]Output %d PO Records in File %s"%(len(poObjes), outputfile))
+        print("Statistic %d PO Records in File %s"%(len(poObjes), outputfile))
     print("[Trans Rate]",len(poObjes), len(rowObjs), len(poObjes)-len(rowObjs))
     return poObjes
 
@@ -119,11 +119,9 @@ def __readPoRecordFromRowobje(rowObj):
      'PO_Amount': 'PO_Amount_Euro$',
      'PO_Date': 'PO_Date$|PO_DateDDMMYY$',
      'Qty': 'Qty$',
-     'Remarks': 'Remarks$',
      'Site_ID':'Site_ID$',
      'SN':'SN$',
      'SAP_PO_Nr':'SAP_PONR',# Additional Parities
-     'Unique_SPM':'Unique_SPM',
     }
 
     poObj = PORecord()
@@ -147,40 +145,49 @@ def __readPoRecordFromRowobje(rowObj):
         objkeys = rowObj.__dict__.keys()
         for objk in objkeys:
             if re.match(v, objk, re.IGNORECASE):
-                #print("Match:", k, objk, rowObj.__dict__[objk])
-                if re.search('date', objk, re.IGNORECASE):
-                    poObj.__dict__[k] = fileReader.clearUnicode(rowObj.__dict__[objk])
+                if k in ['Buyer','Delivery_Address','Product_Description']:
+                    poObj.__dict__[k] = fileReader.cleanString(rowObj.__dict__[objk])
                 else:
                     poObj.__dict__[k] = fileReader.clearUnicode(rowObj.__dict__[objk])
 
-
-    split_reg = r'[;,-]'
-    if poObj.ZTE_PO_Nr is not None:
-        malist = None
-        try:
-            malist = re.split(split_reg, poObj.Material_Code, re.IGNORECASE)
-            qtylist = re.split(split_reg, poObj.Qty, re.IGNORECASE)
-        except Exception:
-            malist = [poObj.Material_Code]
-            qtylist = [poObj.Qty]
-        for i in range(len(malist)):
-            newPoObj = copy.deepcopy(poObj) # clone obj
-            try:
-                newPoObj.Material_Code = malist[i]
-            except Exception:
-                newPoObj.Material_Code = None
-            try:
-                newPoObj.Qty = qtylist[i]
-            except Exception:
-                newPoObj.Qty = list(set(qtylist))[0]
-                print("MCodeslist and Qtylist doesn't match", newPoObj.ZTE_PO_Nr, newPoObj.Sheetname)
-            if newPoObj.ZTE_PO_Nr: # if this is a sap po, then use it
-                reg_sappo = '3\d+'
-                if re.match(reg_sappo, newPoObj.ZTE_PO_Nr):
-                    newPoObj.SAP_PO_Nr = newPoObj.ZTE_PO_Nr
-            result.append(newPoObj)
+    result = []
+    problemPO = []
+    if poObj.ZTE_PO_Nr and poObj.Material_Code and poObj.Site_ID and poObj.Qty:
+        reg_splt_m = '[^0-9]'
+        mc_list = re.split(reg_splt_m, poObj.Material_Code, re.IGNORECASE)
+        qty_list = re.split(reg_splt_m, poObj.Qty, re.IGNORECASE)
+        # compare mclist and qty_list
+        mq_tuples = __rematchMclistAndQtylist(mc_list, qty_list)
+        for mq_t in mq_tuples:
+            newpoObj = copy.deepcopy(poObj)
+            newpoObj.Material_Code = mq_t[0]
+            newpoObj.Qty = mq_t[1]
+            result.append(newpoObj)
     return result
 
+
+def __rematchMclistAndQtylist(mc_list, qty_list):
+    """
+
+    :param mc_list:
+    :param qty_list:
+    :return:
+    """
+    if len(mc_list) != len(qty_list):
+        print("Length of mcodes and qty not match", mc_list, qty_list)
+        if len(mc_list) > len(qty_list):
+            for i in range(len(mc_list)):
+                try:
+                    qty_list[i]
+                except IndexError:
+                    qty_list.insert(i,qty_list[-1])
+        if len(mc_list) < len(qty_list):
+            for i in range(len(qty_list)):
+                try:
+                    mc_list[i]
+                except IndexError:
+                    mc_list.insert(i,mc_list[-1])
+    return zip(mc_list, qty_list)
 
 def addSPAPotoZtePo(sap_PORecords, zte_PORecords):
     """

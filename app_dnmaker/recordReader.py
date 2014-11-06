@@ -41,7 +41,7 @@ def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
             if k in sapPO.__dict__:
                 sapPO.__dict__[k] = fileReader.clearUnicode(v)
         sappoObjects.append(sapPO)
-
+    sappoObjects = deleteDuplicate(sappoObjects)
     return sappoObjects
 
 
@@ -63,6 +63,7 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
 
     cleanZpos = []
     # add on sappo to ztepo
+    noSAPCount = 0
     for zpo in ztePos:
         if not zpo.SAP_PO_Nr:
             refs = [ref.PurchNo for ref in ref_Pos if ref.Reference_PO_Number == zpo.ZTE_PO_Nr]
@@ -73,24 +74,33 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
                 cleanZpos.append(zpo)
             elif len(refs) == 0:
                 # no one found
-                print("Error: find none SAP po for reference", zpo.ZTE_PO_Nr, refs)
+                # print("Error: find none SAP po for reference", zpo.ZTE_PO_Nr, refs)
+                noSAPCount += 1
             else: # zte po and sap po not 1 one to one
                 print("Warning: found one ZTE PO to more refs",zpo.ZTE_PO_Nr, refs)
                 for ref in refs:
                     newZPO = copy.deepcopy(zpo)
                     newZPO.SAP_PO_Nr = ref
                     cleanZpos.append(newZPO)
+
     # get useful  zte po
-    cleanZpos = [po for po in cleanZpos if po.ZTE_PO_Nr is not None
-            and po.Material_Code is not None
-            and po.Qty is not None
-            and po.Site_ID is not None
-            and po.SAP_PO_Nr is not None]
+    cleanZpos = [po for po in cleanZpos
+                if po.ZTE_PO_Nr is not None
+                and po.Material_Code is not None
+                and po.Qty is not None
+                and po.Site_ID is not None
+                and po.SAP_PO_Nr is not None]
+
+    dirtyZpos = []
+    for zpo in ztePos:
+        if zpo not in cleanZpos:
+            dirtyZpos.append(zpo)
+    fileWriter.outputObjectsToFile(dirtyZpos,'problem_pos'+fileWriter.getNowAsString(),'output/error/')
 
     count2 = len(cleanZpos)
 
     if output:
-        storeRawData(ztePos, 'Raw_1_zte_pos')
+        storeRawData(cleanZpos, 'Raw_1_zte_pos')
     print("ZTE Po list ok rate", count2, count)
     return cleanZpos
 
@@ -157,7 +167,6 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Fa
     drObjects = []
     drRows = fileReader.getAllRowObjectInPath(path)
     print("Read rows",len(drRows))
-
     for drRow in drRows:
         drobj = DeliveryRecord()
         drobj = initWithAttrsToNone(drobj, attrs)
@@ -165,12 +174,9 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Fa
             if k in attrs:
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
         drObjects.append(drobj)
-
     drObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None
                 and int(dn.Still_to_be_delivered_qty) != 0]
-
-    #drObjects = deleteDuplicate(drObjects)
-
+    drObjects = deleteDuplicate(drObjects)
     if output:
         storeRawData(drObjects, 'Raw_0_sap_dn')
     return drObjects
@@ -260,7 +266,9 @@ def storeRawData(object, filename, path='input/raw/'):
 def deleteDuplicate(objectsList):
     result = []
     for obj in objectsList:
-        if obj not in objectsList:
+        if obj not in result:
             result.append(obj)
+        else:
+            print(obj.__dict__)
     print("Duplicate Rate:", len(objectsList)- len(result), len(objectsList))
     return result

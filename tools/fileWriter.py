@@ -64,17 +64,10 @@ def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False
     :return: None
     """
     print("Prepare to output Excel file.")
-
     Objects.sort(key=lambda x: x.ZTE_PO_Nr, reverse=False)
-
     tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-    filename = re.sub('\s','',filename)
-    book = Workbook()
-    sheet = book.add_sheet(unicode(filename))
-    header = Objects[0].__dict__.keys()
-    header.sort()
-
-    header = [
+    filename = re.sub('\s','',filename) +'_'+ tims
+    HEADER = [
             #'Unique_SPM',
             'ZTE_PO_Nr',
             'SAP_PO_Nr',
@@ -82,93 +75,27 @@ def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False
             # 'BMID',
             # 'PMR',
             'Material_Code',
+            'Product_Description',
             'Qty',
-            'Sheetname',
+            'Delivery_Address','Delivery_Date',
             #'IST_92',
             'PO_Amount',
             'Confirm_Date',
             'PO_Date',
             #'DN_Done_Date','DN_Maker',
             # 'DN_Status','DN_Booker'
-            'Product_Description',
             #'Credit_Memo_Amount','Credit_Memo',
             'Item_Code',
             #'Buyer','Supplier',
-            'Delivery_Address','Delivery_Date',
-            'Remarks',
+            'Sheetname',
+            # 'Remarks',
             'Filename',
             'Source',
-            'SN',
-            'Rowindex',
+            # 'SN',
+            # 'Rowindex',
             # 'SAP_Deleted',
     ]
-
-    # try:
-    #     header.remove('_state')
-    #     header.remove('id')
-    # except Exception:
-    #     pass
-    for hx in range(len(header)):
-        sheet.write(0, hx, unicode(header[hx]))
-    rowIndex = 1
-    allPosList = []
-    for poObj in Objects:
-        # @todo
-        split_reg = r'[^0-9a-zA-Z]'
-        if poObj.Material_Code is not None: # this object has material code
-            # try break material code
-            poObj.Material_Code = re.sub('\s+',"",poObj.Material_Code) # delete all blank in mcode
-            mcode_list = re.split(split_reg, poObj.Material_Code, re.IGNORECASE)
-            # if len(mcode_list) > 1:
-                #print("INFO","Find more mcode in one row", mcode_list)
-            for mc in mcode_list:
-                newPoObj = copy.deepcopy(poObj) # clone obj
-                newPoObj.Material_Code = mc
-                allPosList.append(newPoObj)
-                for cx in range(len(header)):
-                    try:
-                        sheet.write(rowIndex, cx, unicode(newPoObj.__dict__[header[cx]]))
-                    except:
-                        continue
-                rowIndex += 1
-        else: # the object has no material code
-            allPosList.append(poObj)
-            for cx in range(len(header)):
-                try:
-                    sheet.write(rowIndex, cx, unicode(poObj.__dict__[header[cx]]))
-                except:
-                    continue
-            rowIndex+=1
-    book.save(path + filename + '_'+tims+ '.xls')
-
-    # store the newest po list into input/po_newest_polist
-    book.save('input/po_newest_polist' + 'All_ZTE_PO_LIST.xls')
-
-    if perProject:
-    # output per file
-        filenamesList = [poObj.Filename for poObj in allPosList]
-        filenamesList = set(filenamesList)
-        filenamesList = list(filenamesList)
-        for fn in filenamesList:
-            # build book
-            fn_clean = "ALL_Project_"+ re.sub('[^a-zA-Z]|DE|PO|[Ll]ist','',fn)
-            #print(fn, fn_clean)
-            book = Workbook()
-            sheet = book.add_sheet(fn_clean[:25])
-            poObjs = [poObj for poObj in allPosList if poObj.Filename == fn]
-            # write header
-            for hx in range(len(header)):
-                sheet.write(0, hx, unicode(header[hx]))
-            rowIndex = 1
-            for po in poObjs:
-                for cx in range(len(header)):
-                    try:
-                        sheet.write(rowIndex, cx, unicode(po.__dict__[header[cx]]))
-                    except:
-                        continue
-                rowIndex+=1
-            book.save(path + fn_clean+"_PO_List_"+tims + '.xls')
-            print("Output Project PO book:", fn_clean+"_"+tims)
+    outputObjectsToFile(Objects,filename,'output/polist/', header = HEADER )
 
 
 
