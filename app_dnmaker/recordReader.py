@@ -106,7 +106,7 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist',
 
     if output:
         storeRawData(cleanZpos, 'Raw_1_ztepos')
-        fileWriter.outputObjectsToFile(cleanZpos,'Step_1_ztepos','output/dn_maker/')
+        fileWriter.outputObjectsToFile(cleanZpos,'Raw_1_ztepos','output/dn_maker/')
     print("ZTE Po list ok rate", count2, count)
     return cleanZpos
 
