@@ -18,7 +18,11 @@ import xlxsreader as xlr
 
 class ExcelRowObject(object):
 
-    pass
+    def __eq__(self, other):
+        if self.__dict__ == other.__dict__:
+            return True
+        else:
+            return False
 
 
 
@@ -394,6 +398,7 @@ def getAllRowObjectInPath(path, recursive = False):
     for s in sheets:
         rowObj = covertSheetRowIntoRowObjectFromSheet(s)
         rowObjs.extend(rowObj)
+
     return rowObjs
 
 

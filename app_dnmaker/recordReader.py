@@ -5,40 +5,47 @@ import pickle
 import datetime
 import os
 import re
+import copy
+from tools.fileReader import ExcelRowObject
 
 
-class DeliveryRecord(object):
+class DeliveryRecord(ExcelRowObject):
     pass
 
 
-class BMStatusRecord(object):
+class BMStatusRecord(ExcelRowObject):
+
     pass
 
-class SAPReferencePORecord(object):
+class SAPReferencePORecord(ExcelRowObject):
     pass
 
-class OrderBmidRecord(object):
+class OrderBmidRecord(ExcelRowObject):
     pass
 
-class ZTEPoRecord(object):
+class ZTEPoRecord(ExcelRowObject):
     pass
 
 
 
-def getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
+def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
     rows = fileReader.getAllRowObjectInPath(path)
     sappoObjects = []
 
+    attrs = [u'Reference_PO_Number',u'Material',u'Item_of_PO',u'Order',u'Material_Description',u'PurchNo']
+
     for drRow in rows:
         sapPO = SAPReferencePORecord()
+        sapPO = initWithAttrsToNone(sapPO, attrs)
         for k, v in drRow.__dict__.items():
-            sapPO.__dict__[k] = fileReader.clearUnicode(v)
+            if k in sapPO.__dict__:
+                sapPO.__dict__[k] = fileReader.clearUnicode(v)
         sappoObjects.append(sapPO)
 
     return sappoObjects
 
 
-def getAllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
+def get1_AllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
                                       referencepopath = 'input/po_zte_to_sap/', output=False):
     rows = fileReader.getAllRowObjectInPath(ztepopath)
     ztePos = []
@@ -51,22 +58,30 @@ def getAllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
     count = len(ztePos)
 
     # get references po
-    ref_Pos = getAllSapReferencesPoFromZTEPOInPath()
+    ref_Pos = __getAllSapReferencesPoFromZTEPOInPath()
     ref_list = list(set([(ref.Reference_PO_Number, ref.PurchNo) for ref in ref_Pos]))
 
+    cleanZpos = []
     # add on sappo to ztepo
     for zpo in ztePos:
         if not zpo.SAP_PO_Nr:
             refs = [ref.PurchNo for ref in ref_Pos if ref.Reference_PO_Number == zpo.ZTE_PO_Nr]
             refs = set(refs)
             if len(refs) == 1:
+                # only one found
                 zpo.SAP_PO_Nr = refs.pop()
+                cleanZpos.append(zpo)
             elif len(refs) == 0:
-                print("Error: find more or none SAP po for reference", zpo.ZTE_PO_Nr, refs)
-            else:
-                pass
+                # no one found
+                print("Error: find none SAP po for reference", zpo.ZTE_PO_Nr, refs)
+            else: # zte po and sap po not 1 one to one
+                print("Warning: found one ZTE PO to more refs",zpo.ZTE_PO_Nr, refs)
+                for ref in refs:
+                    newZPO = copy.deepcopy(zpo)
+                    newZPO.SAP_PO_Nr = ref
+                    cleanZpos.append(newZPO)
     # get useful  zte po
-    cleanZpos = [po for po in ztePos if po.ZTE_PO_Nr is not None
+    cleanZpos = [po for po in cleanZpos if po.ZTE_PO_Nr is not None
             and po.Material_Code is not None
             and po.Qty is not None
             and po.Site_ID is not None
@@ -74,21 +89,14 @@ def getAllMixedZtePowithSapPoFromPath(ztepopath='input/po_newest_polist',
 
     count2 = len(cleanZpos)
 
-    # output error po
-    errorpos = []
-    for zpo in ztePos:
-        if zpo not in cleanZpos:
-            errorpos.append(zpo)
-    fileWriter.outputObjectsToFile(errorpos,'Problem_ZTEPO','output/error/')
-
     if output:
-        storeRawData(ztePos, 'zte_pos')
+        storeRawData(ztePos, 'Raw_1_zte_pos')
     print("ZTE Po list ok rate", count2, count)
     return cleanZpos
 
 
 
-def getAllSapOrderBmidInPath(path = 'input/po_oder_bmid/'):
+def get2_AllSapOrderBmidInPath(path = 'input/po_oder_bmid/', output = False):
 
     attris = [u'Purchase_order_number',
              u'Description',
@@ -108,11 +116,17 @@ def getAllSapOrderBmidInPath(path = 'input/po_oder_bmid/'):
             if k in attris:
                 sapPO.__dict__[k] = fileReader.clearUnicode(v)
         sappoObjects.append(sapPO)
-    return sappoObjects
+
+    if output:
+        storeRawData(sappoObjects,'Raw_2_order_to_bmid')
+
+    result = deleteDuplicate(sappoObjects)
+
+    return result
 
 
 
-def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=False):
+def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=False):
     """
     Reads the sap output using ME2L, with vendor nr: 5043096
     Change to account_view and layout, to put all header in table.
@@ -136,13 +150,13 @@ def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Fals
         u'Purchasing_Info_Rec',
         u'Still_to_be_delivered_qty',
         u'Short_Text',
-        u'Unique_PO_MC'
         ]
 
 
 
     drObjects = []
     drRows = fileReader.getAllRowObjectInPath(path)
+    print("Read rows",len(drRows))
 
     for drRow in drRows:
         drobj = DeliveryRecord()
@@ -150,24 +164,19 @@ def getAllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Fals
         for k, v in drRow.__dict__.items():
             if k in attrs:
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
-        try:
-            drobj.Unique_PO_MC = '-'.join([drobj.Purchasing_Document, drobj.Material])
-        except Exception:
-            print("Error: Unique_PO_MC", drobj.Purchasing_Document, drobj.Material)
         drObjects.append(drobj)
 
-    count_all = len(drObjects)
-    drObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None]
-    count_del = len(drObjects)
-    drObjects = [dn for dn in drObjects if int(dn.Still_to_be_delivered_qty) != 0]
-    print('All SAP_DN', count_all, ' To be delivery', len(drObjects))
+    drObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None
+                and int(dn.Still_to_be_delivered_qty) != 0]
+
+    #drObjects = deleteDuplicate(drObjects)
 
     if output:
-        storeRawData(drObjects, 'sap_dn')
+        storeRawData(drObjects, 'Raw_0_sap_dn')
     return drObjects
 
 
-def getAllBMStatusRecordInPath(path='input/po_bmstatus/', output=False):
+def get3_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=False):
 
     bmObjects = []
 
@@ -193,7 +202,7 @@ def getAllBMStatusRecordInPath(path='input/po_bmstatus/', output=False):
         rowObjList.extend(rowObjs)
 
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'BS_STO',u'BS_FE',u'IST92',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING','Unique_BM_BS']
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING']
 
     for rowObj in rowObjList:
         bmObj = BMStatusRecord()
@@ -203,10 +212,19 @@ def getAllBMStatusRecordInPath(path='input/po_bmstatus/', output=False):
                 bmObj.__dict__[k] = fileReader.clearUnicode(v)
         bmObjects.append(bmObj)
 
-    if output:
-        storeRawData(bmObjects,'bm_status')
 
-    return bmObjects
+    # delete all has no IST92
+    # count = len(bmObjects)
+    # bmObjects = [bms for bms in bmObjects if bms.IST92]
+    # count2 = len(bmObjects)
+    # print("BMstatus have IST92", count2, count)
+
+    result = deleteDuplicate(bmObjects)
+
+    if output:
+        storeRawData(result,'Raw_3_bm_status')
+
+    return result
 
 
 
@@ -225,6 +243,7 @@ def loadRawData(path):
     fileDict = None
     with open(path, 'rb') as f:
         fileDict = pickle.load(f)
+    print("Load %d records"%(len(fileDict)))
     return fileDict
 
 def storeRawData(object, filename, path='input/raw/'):
@@ -238,6 +257,10 @@ def storeRawData(object, filename, path='input/raw/'):
         print("Error:storeRawData," + path + filename + "_" + tims + '.raw')
 
 
-
-
-
+def deleteDuplicate(objectsList):
+    result = []
+    for obj in objectsList:
+        if obj not in objectsList:
+            result.append(obj)
+    print("Duplicate Rate:", len(objectsList)- len(result), len(objectsList))
+    return result

@@ -39,6 +39,7 @@ def outputObjectsToFile(objects, filename, path, header = None):
         rowindex += 1
     try:
         book.save(path + filename + '.xls')
+        print("OK: output",path + filename + '.xls' )
     except Exception:
         print("Error: outputObjectsToFile")
 
@@ -307,3 +308,6 @@ def outputDeliverRecord(result, outputfile = 'All_Delievery', outputpath='output
 
 
 
+def getNowAsString():
+    tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    return tims
