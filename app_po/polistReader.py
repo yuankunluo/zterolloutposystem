@@ -38,36 +38,20 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
 
     rowObjs = fileReader.getAllRowObjectInPath(path)
     poObjes = []
+    wrongPos = []
     for robj in rowObjs:
         coverresult = __readPoRecordFromRowobje(robj)
         if coverresult:
-            poObjes.extend(coverresult)
+            poObjes.extend(coverresult[0])
+            wrongPos.extend(coverresult[1])
     poObjes = [poObj for poObj in poObjes if poObj is not None]
 
-
     if updateWithSAPPO:
-        poObjesNoSAP = [po for po in poObjes if po.SAP_PO_Nr is None]
-        fileWriter.outputPOList(poObjesNoSAP, filename="Temp_"+outputfile,
-                                path='output/polist_temp/', perProject=False)
+        pass
 
-        print("\nZTE_POlist without SAP PO was already stored as excel file in output/polist_temp/!\n"
-              "Please use it as reference source and do Query ZZTE_PO_LIST in sap,\n"
-              "Store the result in input/po_zte_to_sap\n")
-
-        # get user input
-        user_input = raw_input("Enter [Yes] to continue, Enter No to Stop: ")
-
-        if user_input.lower() == 'yes':
-            print("Prepare to add sappo to ztepo... ")
-            try:
-                # adding sappo to ztepo
-                sap_Record = rReader.__getAllSapReferencesPoFromZTEPOInPath()
-                poObjes = addSPAPotoZtePo(sap_Record, poObjes)
-            except Exception:
-                print("ZTEPO to SAP po files are not usefull!")
-                pass
     if output:
         fileWriter.outputPOList(poObjes, outputfile, outputpath, perProject=True)
+        fileWriter.outputObjectsToFile(wrongPos, 'No-valid-po', 'output/error/')
         print("Statistic %d PO Records in File %s"%(len(poObjes), outputfile))
     print("[Trans Rate]",len(poObjes), len(rowObjs), len(poObjes)-len(rowObjs))
     return poObjes
@@ -108,21 +92,22 @@ def __readPoRecordFromRowobje(rowObj):
     re_nonsheetnames = r'.*([Ss]torno|[cC]ancelled).*|Sheet1|cancelled|Equipment.*Storno|Testbed|SW|OSS'
     # regx
     regx_header = {
-     'ZTE_PO_Nr':'2510$|PO$|PO_Nr$',
-     'Buyer':'Buyer$',
-     'Confirm_Date':'Date_of_PO_ConfirmationDDMMYY$|PO_Confirmation_Date$',
-     'Delivery_Address':'Delivery$|Delivery_Address$',
-     'Delivery_Date':'Delivery_DateDDMMYY$',
-     'Product_Description': 'Description$|Product_Description$',
-     'Item_Code':'Item_Code$',
-     'Material_Code':'Material_Code$|Materialnr$|PRODUCT_CODE$|Product Code',
-     'PO_Amount': 'PO_Amount_Euro$',
+     'ZTE_PO_Nr':'2510$|PO$|PO_Nr$|PO$|PO_No$',
+     'Delivery_Date':'Delivery_DateDDMMYY$|Delivery_DateDDMMYY$|Delivery_Date$',
+     'Product_Description': 'Description$|Product_Description$|Product_Description$',
+     'Item_Code':'Item_Code$|Item_Code$',
+     'Material_Code':'Material_Code$|Materialnr$|PRODUCT_CODE$|Product Code$|Product_Code$',
+     'PO_Amount': 'PO_Amount_Euro$|PO_AmountEuro$',
      'PO_Date': 'PO_Date$|PO_DateDDMMYY$',
      'Qty': 'Qty$',
-     'Site_ID':'Site_ID$',
-     'SN':'SN$',
+     'Site_ID':'Site_ID$|Site_ID$',
      'SAP_PO_Nr':'SAP_PONR',# Additional Parities
      'Origin_Mcode':'Origin_Mcode',
+     'BMID':'BMID',
+     'Remark':'Remark$',
+     'ZTE_Contract_No':'ZTE_Contract_No$',
+     'CM_No':'CM_No$',
+     'CM_Date':'CM_Date$$'
     }
 
     poObj = PORecord()
@@ -134,11 +119,6 @@ def __readPoRecordFromRowobje(rowObj):
     poObj.Source = rowObj.Source
     poObj.Filename = rowObj.Filename
     poObj.Rowindex = rowObj.Rowindex
-
-    # test if sheet are not needed to be read
-    if re.match(re_nonsheetnames, rowObj.Sheetname, re.IGNORECASE):
-        #print('Find nonsheet %s'%(rowObj.Sheetname))
-        return None
 
 
     # trans rowObj into poObj
@@ -153,6 +133,7 @@ def __readPoRecordFromRowobje(rowObj):
 
 
     result = []
+    wrongpo = []
     if poObj.ZTE_PO_Nr and poObj.Material_Code and poObj.Site_ID and poObj.Qty:
         # if zte po is also the sap po
         if re.match('^3\d+$', poObj.ZTE_PO_Nr, re.IGNORECASE):
@@ -168,7 +149,9 @@ def __readPoRecordFromRowobje(rowObj):
             newpoObj.Material_Code = mq_t[0]
             newpoObj.Qty = mq_t[1]
             result.append(newpoObj)
-    return result
+    else:
+        wrongpo.append(poObj)
+    return (result, wrongpo)
 
 
 def __rematchMclistAndQtylist(mc_list, qty_list):
@@ -179,7 +162,7 @@ def __rematchMclistAndQtylist(mc_list, qty_list):
     :return:
     """
     if len(mc_list) != len(qty_list):
-        print("Length of mcodes and qty not match", mc_list, qty_list)
+        # print("Length of mcodes and qty not match", mc_list, qty_list)
         if len(mc_list) > len(qty_list):
             for i in range(len(mc_list)):
                 try:

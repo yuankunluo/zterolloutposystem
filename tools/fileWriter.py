@@ -16,6 +16,7 @@ import copy
 
 
 def outputObjectsToFile(objects, filename, path, header = None):
+    print("Enter output processing....")
     book = Workbook()
     sheet = book.add_sheet('Overview')
     if header == None:
@@ -67,37 +68,7 @@ def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False
     Objects.sort(key=lambda x: x.ZTE_PO_Nr, reverse=False)
     tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     filename = re.sub('\s','',filename) +'_'+ tims
-    HEADER = [
-            #'Unique_SPM',
-            'ZTE_PO_Nr',
-            'SAP_PO_Nr',
-            'Site_ID',
-            # 'BMID',
-            # 'PMR',
-            'Material_Code',
-            'Origin_Mcode',
-            'Product_Description',
-            'Qty',
-            'Delivery_Address','Delivery_Date',
-            #'IST_92',
-            'PO_Amount',
-            'Confirm_Date',
-            'PO_Date',
-            #'DN_Done_Date','DN_Maker',
-            # 'DN_Status','DN_Booker'
-            #'Credit_Memo_Amount','Credit_Memo',
-            'Item_Code',
-            #'Buyer','Supplier',
-            'Sheetname',
-            # 'Remarks',
-            'Filename',
-            'Source',
-            # 'SN',
-            # 'Rowindex',
-            # 'SAP_Deleted',
-
-    ]
-    outputObjectsToFile(Objects,filename,'output/polist/', header = HEADER )
+    outputObjectsToFile(Objects,filename,'output/polist/' )
 
 
 

@@ -12,23 +12,13 @@ import re
 import datetime
 from collections import OrderedDict
 import xlxsreader as xlr
-
+import copy
 
 
 
 class ExcelRowObject(object):
 
-    def __eq__(self, other):
-        keys = ['Source', 'Rowindex', 'Filename']
-        myDict = self.__dict__
-        othDict = other.__dict__
-        for k in keys:
-            myDict.pop(k)
-            othDict.pop(k)
-        if myDict == othDict:
-            return True
-        else:
-            return False
+    pass
 
 
 
@@ -170,16 +160,13 @@ def __readAllSheetsFromBook(book):
         # give sheet object two additonal attribute
         s.source = book.source
         s.filename = book.filename
-        try:
-            s.hiddenlist = getXlsHiddenRowlistFromSheet(s)
-        except Exception:
-            print("Error", "getHiddenRowList", s.name, s.source)
+        s.hiddenlist = findHiddenRowlistFromSheet(s)
         sheets.append(s)
 
     return sheets
 
 
-def getXlsHiddenRowlistFromSheet(origin_sheet):
+def findHiddenRowlistFromSheet(origin_sheet):
     """
     Get the hidden row index in one list, then return
 
@@ -205,6 +192,8 @@ def getXlsHiddenRowlistFromSheet(origin_sheet):
         xhidden_list = xsheet.getHiddenRowIndex()
         if len(xhidden_list) > 0:
             hiddenlist = xhidden_list
+    if len(hiddenlist) != 0:
+        print("Find %d hiddenlist in sheet %s : %s"%(len(hiddenlist), origin_sheet.source, origin_sheet.name))
     return hiddenlist
 
 
@@ -218,22 +207,39 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
     """
     result = []
     HEADER = [clearHeader(unicode(c.value)) for c in sheet.row(0)]
+    hiddenCount = 0
     # delete empty header cell
     for rowx in range(1,sheet.nrows):
+        if rowx not in sheet.hiddenlist:
         # test this row's empty
-        rowlist = [unicode(c.value) for c in sheet.row(rowx)]
-        rowset = set(rowlist)
-        if len(rowset) == 1:
-            if ''.join(rowlist) == '':
-                continue
+            rowlist = [unicode(c.value) for c in sheet.row(rowx)]
+            rowset = set(rowlist)
+            if len(rowset) == 1:
+                if ''.join(rowlist) == '':
+                    continue
+                else:
+                    rowObj = ExcelRowObject()
+                    for h in HEADER:
+                        rowObj.__dict__[h] = None
+                    rowObj.Source = sheet.source
+                    rowObj.Filename = sheet.filename
+                    rowObj.Sheetname = sheet.name
+                    rowObj.Rowindex = rowx
+                    try:
+                        for hx in range(len(HEADER)):
+                            if len(unicode(sheet.cell(rowx, hx).value)) != 0:
+                                rowObj.__dict__[HEADER[hx]] = sheet.cell(rowx, hx).value
+                    except Exception:
+                        pass
+                    result.append(rowObj)
             else:
                 rowObj = ExcelRowObject()
-                for h in HEADER:
-                    rowObj.__dict__[h] = None
                 rowObj.Source = sheet.source
                 rowObj.Filename = sheet.filename
                 rowObj.Sheetname = sheet.name
                 rowObj.Rowindex = rowx
+                for h in HEADER:
+                        rowObj.__dict__[h] = None
                 try:
                     for hx in range(len(HEADER)):
                         if len(unicode(sheet.cell(rowx, hx).value)) != 0:
@@ -242,21 +248,12 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
                     pass
                 result.append(rowObj)
         else:
-            rowObj = ExcelRowObject()
-            rowObj.Source = sheet.source
-            rowObj.Filename = sheet.filename
-            rowObj.Sheetname = sheet.name
-            rowObj.Rowindex = rowx
-            for h in HEADER:
-                    rowObj.__dict__[h] = None
-            try:
-                for hx in range(len(HEADER)):
-                    if len(unicode(sheet.cell(rowx, hx).value)) != 0:
-                        rowObj.__dict__[HEADER[hx]] = sheet.cell(rowx, hx).value
-            except Exception:
-                pass
-            result.append(rowObj)
-    print("fileReader: CoverRowObject", sheet.nrows-1, len(result), sheet.name, sheet.source)
+            # print("Find hidden row", rowx, sheet.name, sheet.source)
+            hiddenCount += 1
+            continue
+    print("fileReader: CoverRowObject rate", len(result),sheet.nrows-1,
+          'Hidden', hiddenCount, sheet.nrows-1 - hiddenCount ,
+            sheet.name, sheet.source)
     return result
 
 
@@ -390,6 +387,7 @@ def cleanString(value):
 
 
 # ---------------- apis --------------------------------
+
 def getAllRowObjectInPath(path, recursive = False):
     books = __readAllBookFilesInPath(path, recursive)
     sheets = []
@@ -454,52 +452,6 @@ def clearHeader(value):
     return value
 
 
-def __readXMLInPath(path, recursive= False, theNewestOnly=False):
-
-    if not recursive:
-        reg = '.*\.xml$'
-        books = []
-        if os.path.isdir(path):
-            files = os.listdir(path)
-            for fname in files:
-                if fname.startswith('~'):
-                    continue
-                elif fname.startswith('.'):
-                    continue
-                else:
-                    if re.match(reg, fname):
-                        book_path = path + '/' + fname
-                        book = open_workbook(book_path)
-                        book.source = book_path
-                        reg_f = '\.xls$|\.xlsx$'
-                        fname = re.sub(reg_f,'',fname)
-                        book.filename = fname
-                        for s in book.sheets():
-                            s.source = book.source
-                        books.append(book)
-            return books
-        else:
-            print('%s is not path!'%(path))
-            return []
-    else:
-        books = []
-        for root, dirname, files in os.walk(path, topdown=False):
-            if len(dirname) == 0:
-                #print("Find %d files in dir %s"%(len(files), str(root)))
-                for file in files:
-                    reg = '[^~].*\.xls$|[^~].*\.xlsx$'
-                    if re.match(reg, file):
-                        book_path = root +'/' + file
-                        #print(book_path)
-                        book = open_workbook(book_path)
-                        book.source = book_path
-                        reg_f = '\.xls$|\.xlsx$'
-                        file = re.sub(reg_f,'',file)
-                        book.filename = file
-                        books.append(book)
-        return books
-
-
 
 def test(dng):
     for d in dng:
@@ -548,3 +500,12 @@ def getTheNewestFileLocationInPath(path, fileNameRegx=None,
             max_mtime = mtime
             max_file = fullpath
     return  max_file
+
+
+def coverRowobjIntoObjWithHeader(rowObj, otherObj, regx_header):
+    for k, v in regx_header.items():
+        objkeys = rowObj.__dict__.keys()
+        for objk in objkeys:
+            if re.match(v, objk, re.IGNORECASE):
+                otherObj.__dict__[k] = cleanString(rowObj.__dict__[objk])
+    return otherObj
