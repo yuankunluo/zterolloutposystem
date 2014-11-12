@@ -6,6 +6,7 @@ output/**/*.xml
 output/**/*.xls
 output/**/*.xlsx
 output/**/*.data
+output/**/*..DS_Store
 **/*.pyc
 **/*.raw
 **/*/data
