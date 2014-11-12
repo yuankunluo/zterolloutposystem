@@ -24,7 +24,14 @@ class DeliveryRecord(Record):
 
 class BMStatusRecord(Record):
 
+    def __eq__(self, other):
+        attlist = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92']
+        if self.BAUMASSNAHME_ID == other.BAUMASSNAHME_ID and self.BS_FE == other.BS_FE and self.IST92 == other.IST92:
+            return True
+        else:
+            return False
     pass
+
 
 class SAPReferencePORecord(Record):
     pass
@@ -47,7 +54,7 @@ class BMStatus2(Record):
 
 
 def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
-    rows = fileReader.getAllRowObjectInPath(path)
+    rows = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
     sappoObjects = []
 
     attrs = [u'Reference_PO_Number',u'Material',u'Item_of_PO',u'Order',u'Material_Description',u'PurchNo']
@@ -59,66 +66,94 @@ def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
             if k in sapPO.__dict__:
                 sapPO.__dict__[k] = fileReader.clearUnicode(v)
         sappoObjects.append(sapPO)
-    sappoObjects = deleteDuplicate(sappoObjects)
+    sappoObjects = __deleteDuplicate(sappoObjects)
     return sappoObjects
 
 
-def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist',
-                                      referencepopath = 'input/po_zte_to_sap/', output=True):
-    rows1 = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(ztepopath))
-    rows2 = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(referencepopath))
+def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
+                                      referencepopath = 'input/po_zte_to_sap/',
+                                      output=True):
+    """
 
-    ztePos = []
-    error = []
-    refCount = []
-    # # initialize ztePos
-    # for row in rows1:
-    #     ztePo = ZTEPoRecord()
-    #     for k, v in row.__dict__.items():
-    #         ztePo.__dict__[k] = fileReader.clearUnicode(v)
-    #     ztePos.append(ztePo)
-    # count = len(ztePos)
-    # print("Read %d ZTEPO from polist"%(count))
-    #
-    # referenct_dict = {}
-    # for ref in rows2:
-    #     if ref.Reference_PO_Number:
-    #         referenct_dict[ref.Reference_PO_Number] = set()
-    #         if ref.Reference_PO_Number not in referenct_dict:
-    #             referenct_dict[ref.Reference_PO_Number].add((
-    #                 ref.Reference_PO_Number,ref.Order, ref.PurchNo
-    #             ))
-    #
-    # for zpo in ztePos:
-    #     if zpo.ZTE_PO_Nr and zpo.ZTE_PO_Nr in referenct_dict:
-    #         ref_list = list(referenct_dict[zpo.ZTE_PO_Nr])
-    #         if len(ref_list) == 1:
-    #             ref_tup = ref_list[0]
-    #             zpo.SAP_PO_Nr = ref_tup[2]
-    #             refCount += 1
-    #         else:
-    #             error.extend(ref_list)
-    #
-    # cleanZpos = [po for po in ztePos
-    #             if po.ZTE_PO_Nr
-    #             and po.Material_Code
-    #             and po.Qty
-    #             and po.Site_ID
-    #             and po.SAP_PO_Nr]
-    #
-    # for czpo in cleanZpos:
-    #     czpo.Unique_ZTE_PM = '-'.join([czpo.SAP_PO_Nr, czpo.Material_Code])
-    # if output:
-    #     storeRawData(ztePos, 'Raw_1_ztepos_all')
-    #     storeRawData(cleanZpos, 'Raw_1_ztepos_clean')
-    #     storeRawData(error, 'Raw_1_ztepos_error')
-    #     fileWriter.outputObjectsToFile(ztePos,'Raw_1_MIXedztepos_all_','output/raw/')
-    #     fileWriter.outputObjectsToFile(cleanZpos,'Raw_1_MIXedztepos_clean','output/raw/')
-    #     fileWriter.outputObjectsToFile(error,'Raw_1_MIXedztepos_error','output/error/')
-    #
-    # print("Mixed rate:", len(cleanZpos), len(ztePos), "error",len(error), 'Refrences', refCount)
+    :param ztepopath:
+    :param referencepopath:
+    :param output:
+    :return:
+    """
+    ztepos = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(ztepopath))
+    references = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(referencepopath))
 
-    return cleanZpos
+
+    result = []
+    nonmatch = []
+    morematch = []
+    ref_dict = {}
+    # make a refdict for quick
+    for refpo in references:
+        # onle get the record has Reference_po_nr
+        if refpo.Reference_PO_Number:
+            if refpo.Reference_PO_Number not in ref_dict:
+                ref_dict[refpo.Reference_PO_Number] = set()
+                ref_dict[refpo.Reference_PO_Number].add((refpo.PurchNo, refpo.Material))
+            else:
+                ref_dict[refpo.Reference_PO_Number].add((refpo.PurchNo, refpo.Material))
+
+    sappo_unis = [(refpo.PurchNo, refpo.Material) for refpo in references]
+
+    sing_refCount = 0
+    more_refCount = 0
+    no_refCount = 0
+
+    # match sappo to ztepo, ztepo as reference
+    for zpo in ztepos:
+        # if this zpo has zteponr and zte_mnr
+        if zpo.ZTE_PO_Nr and zpo.ZTE_Material:
+            #first check if this unique is in sappo_unis
+            #if yes, we add a sappo to it
+            zte_unique = (zpo.ZTE_PO_Nr, zpo.ZTE_Material)
+            if zte_unique in sappo_unis:
+                zpo.SAP_PO_Nr = zpo.ZTE_PO_Nr
+                zpo.SAP_Material = zpo.ZTE_Material
+                result.append(zpo)
+                continue
+
+            # then we check if this zponr is a refenceponr
+            if zpo.ZTE_PO_Nr in ref_dict:
+                zpo.Reference_PO_Number = zpo.ZTE_PO_Nr
+                ref_set = ref_dict[zpo.ZTE_PO_Nr]
+                if len(ref_set) == 1:
+                    tup = ref_set.pop()
+                    zpo.SAP_PO_Nr = tup[0]
+                    zpo.SAP_Material = tup[1]
+                    result.append(zpo)
+                    sing_refCount += 1
+                if len(ref_set) > 1:
+                    ref_list = list(ref_set)
+                    for tup in ref_list:
+                        newZPO = copy.deepcopy(zpo)
+                        newZPO.SAP_PO_Nr = tup[0]
+                        newZPO.SAP_Material = tup[1]
+                        result.append(newZPO)
+                        morematch.append(newZPO)
+                        more_refCount += 1
+            else:
+                zpo.Reference_PO_Number = None
+                no_refCount += 1
+
+
+    print("Match rate", len(result), len(references))
+    print("Single Match",sing_refCount,'More Math', more_refCount,'No Match', no_refCount)
+
+    zpo_without_sappo = [zpo for zpo in result if zpo.SAP_PO_Nr is None]
+
+    if output:
+        fileWriter.outputObjectsToFile(result, 'Raw_1_MixedZPO_all_', 'output/raw/')
+        fileWriter.outputObjectsToFile(morematch,'Raw_1_MixedZPO_morematch','output/error/')
+        fileWriter.outputObjectsToFile(zpo_without_sappo,'Raw_1_ZPO_Without_SAPPO','output/error/')
+    return result
+
+
+
 
 
 
@@ -146,7 +181,7 @@ def get2_AllOrderBmidInPath(path = 'input/po_oder_bmid/', output = True):
             dupCount += 1
 
     if output:
-        storeRawData(orbmid,'Raw_2_order_to_bmid')
+        # __storeRawData(orbmid,'Raw_2_order_to_bmid')
         fileWriter.outputObjectsToFile(orbmid,'Raw_2_OrderBMID','output/raw/')
     print("ORBMID rate", len(orbmid), len(rows), 'Duplicate', dupCount)
     return orbmid
@@ -184,6 +219,8 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
     drObjects = []
     drRows = fileReader.getAllRowObjectInPath(path)
     print("Read rows",len(drRows))
+
+    # cover rows as bmboject
     for drRow in drRows:
         drobj = DeliveryRecord()
         drobj = initWithAttrsToNone(drobj, attrs)
@@ -192,20 +229,22 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
         drobj.Unique_PM = '-'.join([drobj.Purchasing_Document, drobj.Material])
         drObjects.append(drobj)
+
+
     alldrObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None
                 # and int(dn.Still_to_be_delivered_qty) != 0
     ]
-    drObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None
+
+    drObjects_clean = [dn for dn in drObjects if dn.Deletion_Indicator == None
                 and int(dn.Still_to_be_delivered_qty) != 0
     ]
-    #drObjects = deleteDuplicate(drObjects)
     if output:
-        fileWriter.outputObjectsToFile(drObjects,'Raw_0_SAPDN_clean','output/raw/')
-        storeRawData(drObjects, 'Raw_0_sap_dn_clean')
+        fileWriter.outputObjectsToFile(drObjects_clean,'Raw_0_SAPDN_clean','output/raw/')
+        # __storeRawData(drObjects_Clean, 'Raw_0_sap_dn_clean')
         fileWriter.outputObjectsToFile(alldrObjects,'Raw_0_SAPDN_all','output/raw/')
-        storeRawData(alldrObjects, 'Raw_0_sap_dn_all')
+        # __storeRawData(alldrObjects, 'Raw_0_sap_dn_all')
     print("SAPDN clean (still to be del.) rate", len(drObjects), len(alldrObjects))
-    return drObjects
+    return alldrObjects
 
 
 def __get_AllBM2StatusRecordInPath(path='input/po_bmstatus2/', output=True):
@@ -228,7 +267,7 @@ def __get_AllBM2StatusRecordInPath(path='input/po_bmstatus2/', output=True):
             bm2List.append(bmStu2)
 
     if output:
-        storeRawData(bm2List, 'Raw_3_bmstatus2')
+        __storeRawData(bm2List, 'Raw_3_bmstatus2')
         fileWriter.outputObjectsToFile(bm2List, 'RAW_3_bmstatus2','output/raw/')
     return bm2List
 
@@ -239,10 +278,10 @@ def get3_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
     bmObjects = []
 
     rowObjList = []
+
     bm_sheets = []
     #get all sheets in path
     sheets = fileReader.getAllSheetsInPath(path, recursive=True)
-    # test header
     test_header = [u'BAUMASSNAHME_ID', u'BS_FE', u'GEMEINDE_NAME',u'IST92', u'PLZ',u'STRASSE']
     # test if this is a good bm status list
     for sheet in sheets:
@@ -250,61 +289,69 @@ def get3_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         if __contains(test_header, header):
             bm_sheets.append(sheet)
         else:
-            print("Error"
-                  ": No BM_STATUS Header", sheet.name, sheet.filename,
-                  'Header Length', len(header))
+            print("Error: No BM_STATUS Header", sheet.name, sheet.filename)
 
     for bm_sheet in bm_sheets:
         rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
         rowObjList.extend(rowObjs)
 
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'BS_STO',u'BS_FE',u'IST92',
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING']
 
+    bm_dict = {}
+    conflict_bmstatus = []
+    result = []
+
+    print("Enter covering Rowobejec into BMStatusObject")
     for rowObj in rowObjList:
         bmObj = BMStatusRecord()
         bmObj = initWithAttrsToNone(bmObj, attris)
+        bmObj.BM_Source = rowObj.Source
         for k, v in rowObj.__dict__.items():
             if k in attris:
                 bmObj.__dict__[k] = fileReader.clearUnicode(v)
-        bmObjects.append(bmObj)
-
+        bm_tupe = (bmObj.BAUMASSNAHME_ID, bmObj.BS_FE)
+        if bm_tupe not in bm_dict:
+            bm_dict[bm_tupe] = bmObj
+            result.append(bmObj)
+        else:
+            oldbm = bm_dict[bm_tupe]
+            if oldbm.IST92 != bmObj.IST92:
+                conflict_bmstatus.extend([bmObj, oldbm])
 
     # delete all has no IST92
     # count = len(bmObjects)
     # bmObjects = [bms for bms in bmObjects if bms.IST92]
     # count2 = len(bmObjects)
     # print("BMstatus have IST92", count2, count)
-    bmstatus2 = __get_AllBM2StatusRecordInPath()
-    bmstatus_dict = {}
-    for bm2 in bmstatus2:
-        if bm2.BAUMASSNAHME_ID not in bmstatus_dict:
-            bmstatus_dict[bm2.BAUMASSNAHME_ID] = set()
-            bmstatus_dict[bm2.BAUMASSNAHME_ID].add((bm2.BAUMASSNAHME_ID, bm2.IST92))
-        else:
-            bmstatus_dict[bm2.BAUMASSNAHME_ID].add((bm2.BAUMASSNAHME_ID, bm2.IST92))
-
-    addonCount = 0
-    for bm in bmObjects:
-        if not bm.IST92:
-            if bm.BAUMASSNAHME_ID in bmstatus_dict:
-                bm2_set = bmstatus_dict[bm.BAUMASSNAHME_ID]
-                bm2_list = list(bm2_set)
-                bm2_list = [bm2_tuple for bm2_tuple in bm2_list if bm2_tuple[1] != None]
-                if len(bm2_list) != 0:
-                    bm.IST02 = bm2_list[0][1]
-                    addonCount += 1
-
-    result = deleteDuplicate(bmObjects)
-    bm92 = [bm for bm in bmObjects if bm.IST92]
+    # bmstatus2 = __get_AllBM2StatusRecordInPath()
+    # bmstatus_dict = {}
+    # for bm2 in bmstatus2:
+    #     if bm2.BAUMASSNAHME_ID not in bmstatus_dict:
+    #         bmstatus_dict[bm2.BAUMASSNAHME_ID] = set()
+    #         bmstatus_dict[bm2.BAUMASSNAHME_ID].add((bm2.BAUMASSNAHME_ID, bm2.IST92))
+    #     else:
+    #         bmstatus_dict[bm2.BAUMASSNAHME_ID].add((bm2.BAUMASSNAHME_ID, bm2.IST92))
+    #
+    # addonCount = 0
+    # for bm in bmObjects:
+    #     if not bm.IST92:
+    #         if bm.BAUMASSNAHME_ID in bmstatus_dict:
+    #             bm2_set = bmstatus_dict[bm.BAUMASSNAHME_ID]
+    #             bm2_list = list(bm2_set)
+    #             bm2_list = [bm2_tuple for bm2_tuple in bm2_list if bm2_tuple[1] != None]
+    #             if len(bm2_list) != 0:
+    #                 bm.IST02 = bm2_list[0][1]
+    #                 addonCount += 1
+    #
+    bm92 = [bm for bm in result if bm.IST92]
 
     if output:
         fileWriter.outputObjectsToFile(result,'RAW_3_BMSTATUS_all','output/raw/')
-        storeRawData(result,'Raw_3_bm_status_all')
+        fileWriter.outputObjectsToFile(conflict_bmstatus,'RAW_3_BMSTATUS_conflict','output/error/')
         fileWriter.outputObjectsToFile(bm92,'RAW_3_BMSTATUS_ist92','output/raw/')
-        storeRawData(bm92,'Raw_3_bm_status_ist92')
-    print("BM STATUS IST 92 Rate:", len(bm92), len(result), 'Addon', addonCount)
-    return bm92
+    print("BM STATUS IST 92 Rate:", len(bm92), len(result), 'Confilict', len(conflict_bmstatus))
+    return result
 
 
 
@@ -326,7 +373,7 @@ def loadRawData(path):
     print("Load %d records"%(len(fileDict)))
     return fileDict
 
-def storeRawData(object, filename, path='input/raw/'):
+def __storeRawData(object, filename, path='input/raw/'):
     tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     try:
         with open(path + filename+ '.raw', 'wb') as f:
@@ -337,7 +384,7 @@ def storeRawData(object, filename, path='input/raw/'):
         print("Error:storeRawData," + path + filename + '.raw')
 
 
-def deleteDuplicate(objectsList):
+def __deleteDuplicate(objectsList):
     result = []
     for obj in objectsList:
         if obj not in result:
@@ -346,3 +393,4 @@ def deleteDuplicate(objectsList):
         #     print(obj.__dict__)
     print("Duplicate Rate:", len(objectsList)- len(result), len(objectsList))
     return result
+

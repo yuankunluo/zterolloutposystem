@@ -27,8 +27,10 @@ class PORecord():
 
 # ----------- Gothrough -----------------------------------------
 
-def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO_List',
-                             outputpath='output/polist/', output = True, updateWithSAPPO = False):
+def goThroughPolistDirectory(path = 'input/po_polist/',
+                             outputfile='ALL_ZTE_PO_List',
+                             outputpath='output/polist/',
+                             output=True):
     """
 
     The dirctory name of the files that stored xlmx files
@@ -39,7 +41,6 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
     rowObjs = fileReader.getAllRowObjectInPath(path)
     poObjes = []
     wrongPos = []
-    hidden = []
     for robj in rowObjs:
         coverresult = __readPoRecordFromRowobje(robj)
         if coverresult:
@@ -48,16 +49,16 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
     hidden = [poObj for poObj in poObjes if poObj.Hidden]
     poObjes = [poObj for poObj in poObjes if poObj is not None and not poObj.Hidden]
 
-    ztemcodes = [(poObj.Material_Code, poObj.Product_Description) for poObj in poObjes
-                if re.match('^5\d+', poObj.Material_Code)
+    ztemcodes = [(poObj.ZTE_Material, poObj.Product_Description) for poObj in poObjes
+                if re.match('^5\d+', poObj.ZTE_Material)
                 ]
     ztemcodes = list(set(ztemcodes))
 
-    if updateWithSAPPO:
-        pass
 
     if output:
-        fileWriter.outputPOList(poObjes, outputfile, outputpath)
+        fileWriter.outputObjectsToFile(poObjes,
+                                       outputfile + fileWriter.getNowAsString(),
+                                       outputpath)
         fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
         fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
         fileWriter.outputListOfTupleToFile(ztemcodes,'zte_mcodes','output/zte_mcodes')
@@ -65,27 +66,6 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
     print("[Trans Rate]",len(poObjes), len(rowObjs), len(poObjes)-len(rowObjs))
     return poObjes
 
-
-
-def isPolistSheetOk(sheet):
-    """
-    determine if this sheet ok
-    :param sheet: the sheet
-    :return: boolean
-    """
-    header = [(unicode(h.value)).lower() for h in sheet.row(0)]
-    header_s = ' '.join(header)
-    header_regx = r's/n|po|po#|site_id|site id|buyer|supplier|po date|sn'
-    macher = re.findall(header_regx, header_s)
-    if macher is not None:
-        if len(macher) > 4:
-            try:
-                print('Sheet %s in file %s is ok'%(sheet.name, sheet.source))
-            except:
-                pass
-            return True
-    else:
-        return False
 
 
 def __readPoRecordFromRowobje(rowObj):
@@ -105,19 +85,19 @@ def __readPoRecordFromRowobje(rowObj):
      'Delivery_Date':'Delivery_DateDDMMYY$|Delivery_DateDDMMYY$|Delivery_Date$',
      'Product_Description': 'Description$|Product_Description$|Product_Description$',
      'Item_Code':'Item_Code$|Item_Code$',
-     'Material_Code':'Material_Code$|Materialnr$|PRODUCT_CODE$|Product Code$|Product_Code$',
+     'ZTE_Material':'Material_Code$|Materialnr$|PRODUCT_CODE$|Product Code$|Product_Code$',
      'PO_Amount': 'PO_Amount_Euro$|PO_AmountEuro$',
      'PO_Date': 'PO_Date$|PO_DateDDMMYY$',
      'Qty': 'Qty$',
      'Site_ID':'Site_ID$|Site_ID$',
-     'SAP_PO_Nr':'SAP_PONR',# Additional Parities
+     'SAP_PO_Nr':'SAP_PONR',
      'Origin_Mcode':'Origin_Mcode',
-     'BMID':'BMID',
      'Remark':'Remark$',
      'ZTE_Contract_No':'ZTE_Contract_No$',
      'CM_No':'CM_No$',
      'CM_Date':'CM_Date$$',
      'Hidden':'Hidden$',
+     'SAP_Material':'^Material$',
     }
 
     poObj = PORecord()
@@ -144,19 +124,16 @@ def __readPoRecordFromRowobje(rowObj):
 
     result = []
     wrongpo = []
-    if poObj.ZTE_PO_Nr and poObj.Material_Code and poObj.Site_ID and poObj.Qty:
-        # if zte po is also the sap po
-        if re.match('^3\d+$', poObj.ZTE_PO_Nr, re.IGNORECASE):
-            poObj.SAP_PO_Nr = poObj.ZTE_PO_Nr
-        poObj.Origin_Mcode = poObj.Material_Code
+    if poObj.ZTE_PO_Nr and poObj.ZTE_Material and poObj.Site_ID and poObj.Qty:
+        poObj.Origin_Mcode = poObj.ZTE_Material
         reg_splt_m = '[^0-9]+'
-        mc_list = re.split(reg_splt_m, poObj.Material_Code, re.IGNORECASE)
+        mc_list = re.split(reg_splt_m, poObj.ZTE_Material, re.IGNORECASE)
         qty_list = re.split(reg_splt_m, poObj.Qty, re.IGNORECASE)
         # compare mclist and qty_list
         mq_tuples = __rematchMclistAndQtylist(mc_list, qty_list)
         for mq_t in mq_tuples:
             newpoObj = copy.deepcopy(poObj)
-            newpoObj.Material_Code = mq_t[0]
+            newpoObj.ZTE_Material = mq_t[0]
             newpoObj.Qty = mq_t[1]
             result.append(newpoObj)
     else:
@@ -187,25 +164,3 @@ def __rematchMclistAndQtylist(mc_list, qty_list):
                     mc_list.insert(i,mc_list[-1])
     return zip(mc_list, qty_list)
 
-def addSPAPotoZtePo(sap_PORecords, zte_PORecords):
-    """
-    Find all matched SAP PO to ZTE po
-
-    :param sap_PORecords: the SAP Po records
-    :param zte_PORecords: the ZTE Po records
-    :return: modified ZTE Po Records
-    """
-    for zte_po in zte_PORecords:
-        if zte_po.SAP_PO_Nr is None: # this record must find it's sap po
-            sap_nrs = [spo.PurchNo for spo in sap_PORecords if spo.Reference_PO_Number == zte_po.ZTE_PO_Nr]
-            sap_nrs = list(set(sap_nrs))
-            if len(sap_nrs) == 1:
-                zte_po.SAP_PO_Nr = sap_nrs[0]
-                print("Find sappo", zte_po.ZTE_PO_Nr, zte_po.SAP_PO_Nr)
-        if zte_po.SAP_PO_Nr and zte_po.Site_ID and zte_po.Material_Code:
-            zte_po.Unique_SPM = '-'.join([zte_po.Site_ID, zte_po.SAP_PO_Nr, zte_po.Material_Code])
-            zte_po.Unique_PM = '-'.join([zte_po.SAP_PO_Nr, zte_po.Material_Code])
-        else:
-            zte_po.Unique_SPM = None
-            zte_po.Unique_PM = None
-    return zte_PORecords

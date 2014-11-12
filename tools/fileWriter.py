@@ -16,6 +16,9 @@ import copy
 
 
 def outputObjectsToFile(objects, filename, path, header = None):
+    if objects is None:
+        print("None object can not be wrote")
+        return
     print("Enter output processing....")
     book = Workbook()
     sheet = book.add_sheet('Overview')
@@ -38,11 +41,10 @@ def outputObjectsToFile(objects, filename, path, header = None):
             except Exception:
                 continue
         rowindex += 1
-    try:
-        book.save(path + filename + '.xls')
-        print("OK: output",path + filename + '.xls' )
-    except Exception:
-        print("Error: outputObjectsToFile")
+
+    book.save(path + filename + '.xls')
+    print("OK: output",path + filename + '.xls' )
+
 
 
 
@@ -54,23 +56,6 @@ def __writePoRecords(poRecorsList, filename='poRecordList', path = 'output'):
     sheet = book.add_sheet(unicode(filename))
     header = []
 
-
-
-def outputPOList(poObjects, filename = 'POLIST', path='output'):
-    """
-    Write Objects into xls
-
-    :param poObjects: A list of any class
-    :param filename: the file name
-    :return: None
-    """
-    print("Prepare to output Excel file.")
-    poObjects.sort(key=lambda x: x.ZTE_PO_Nr, reverse=False)
-    tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-    filename = re.sub('\s','',filename) +'_'+ tims
-    outputObjectsToFile(poObjects,filename,'output/polist/' )
-    projects = list(set([p.Sheetname for p in poObjects]))
-    book = Workbook()
 
 
 
@@ -210,17 +195,24 @@ def outputDeliverRecord(result, outputfile = 'All_Delievery', outputpath='output
     book.save(outputpath + outputfile + '.xls')
 
 
-def outputListOfTupleToFile(listofTuple, filename, path):
+def outputListOfTupleToFile(listofTuple, filename, path, header=None):
 
     book = Workbook()
     sheet = book.add_sheet(filename)
+    if header:
+        for colx in range(len(header)):
+            sheet.write(0, colx, header[colx])
     for rowx in range(len(listofTuple)):
         tup = listofTuple[rowx]
         for colx in range(len(tup)):
-            sheet.write(rowx, colx, tup[colx])
+            if header:
+                writerowx = 1
+            else:
+                writerowx = 0
+            sheet.write(rowx+writerowx, colx, tup[colx])
     book.save(path + '/' + filename +'.xls')
     print("Output tuple to file", path + filename)
 
-def getNowAsString():
-    tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+def getNowAsString(formatStr = "%Y%m%d_%H%M"):
+    tims = datetime.datetime.now().strftime(formatStr)
     return tims

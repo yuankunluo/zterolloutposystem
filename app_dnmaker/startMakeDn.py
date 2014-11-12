@@ -96,13 +96,13 @@ def step1_addingBMIDtoSapdn(sapdns, orbmids, output=True):
     #
     if output:
         fileWriter.outputObjectsToFile(result,
-                                       'Step1_result_' + fileWriter.getNowAsString(),
+                                       'Step1_result_' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/dn_maker/')
-        recordReader.storeRawData(result,"Result_1_SAPDN_with_BMID")
+        # recordReader.__storeRawData(result,"Result_1_SAPDN_with_BMID")
         fileWriter.outputObjectsToFile(error,
-                                       'Step1_result_sapdn_without_bmid' + fileWriter.getNowAsString(),
+                                       'Step1_result_sapdn_without_bmid' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/error/')
-        recordReader.storeRawData(error,"Result_1_SAPDN_without_BMID")
+        # recordReader.__storeRawData(error,"Result_1_SAPDN_without_BMID")
 
     print("Find bmid for order", len(result), "No find",len(error), 'ALL', len(sapdns))
     return result
@@ -141,18 +141,18 @@ def step2_addBMstatusToSapdn(result1, bmstatus, output=True):
     print("OK rate", len(result),len(result1),'IST',len(result92),'Error', len(error))
     if output:
         fileWriter.outputObjectsToFile(result,
-                                       'Step2_result_all_' + fileWriter.getNowAsString(),
+                                       'Step2_result_all_' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/dn_maker/')
         fileWriter.outputObjectsToFile(result92,
-                                       'Step2_result_92_' + fileWriter.getNowAsString(),
+                                       'Step2_result_92_' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/dn_maker/')
         fileWriter.outputObjectsToFile(error,
-                                       'Step2_result_error_no_BMSTATUS_' + fileWriter.getNowAsString(),
+                                       'Step2_result_error_no_BMSTATUS_' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/error/')
 
-        recordReader.storeRawData(result,"Result_2_SAPDN_with_BMID_BMSTATUS")
-        recordReader.storeRawData(result92,"Result_2_SAPDN_with_BMID_BMSTATUS_92")
-        recordReader.storeRawData(error,"Result_2_SAPDN_Without_BMSTATUS")
+        # recordReader.__storeRawData(result,"Result_2_SAPDN_with_BMID_BMSTATUS")
+        # recordReader.__storeRawData(result92,"Result_2_SAPDN_with_BMID_BMSTATUS_92")
+        # recordReader.__storeRawData(error,"Result_2_SAPDN_Without_BMSTATUS")
     return result
 
     # matchCount = 0
@@ -225,6 +225,8 @@ def step3_FilterOnlyZTEPO(result2, mixedZtepo, output=True):
                 sapdn_dict[sapdn.Unique_PM].append(sapdn)
 
     for zpo in mixedZtepo:
+        if zpo.SAP_PO_Nr and zpo.SAP_Material:
+            zpo.Unique_ZTE_PM = '-'.join([zpo.SAP_PO_Nr, zpo.SAP_Material])
         if zpo.Unique_ZTE_PM:
             if zpo.Unique_ZTE_PM in sapdn_dict:
                 spnlist = sapdn_dict[zpo.Unique_ZTE_PM]
@@ -252,10 +254,10 @@ def step3_FilterOnlyZTEPO(result2, mixedZtepo, output=True):
 
     if output:
         fileWriter.outputObjectsToFile(result,
-                                       'Step3_result_all_' + fileWriter.getNowAsString(),
+                                       'Step3_result_all_' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/dn_maker/')
         fileWriter.outputObjectsToFile(result_DN,
-                                       'Step3_result_DN_' + fileWriter.getNowAsString(),
+                                       'Step3_result_DN_' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/dn_maker/')
         fileWriter.outputObjectsToFile(error,
                                        'Step3_result_error_no_match_' + fileWriter.getNowAsString(),

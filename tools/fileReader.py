@@ -473,7 +473,8 @@ def test(dng):
 
 
 def getTheNewestFileLocationInPath(path, fileNameRegx=None,
-                                   recursively = False, fileExtentionRegx = None):
+                                   recursively = False,
+                                   fileExtentionRegx = '\.xls|\.xlxs'):
     filesList = []
     if not recursively:
         for fn in os.listdir(path):
