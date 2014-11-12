@@ -56,19 +56,22 @@ def __writePoRecords(poRecorsList, filename='poRecordList', path = 'output'):
 
 
 
-def outputPOList(Objects, filename = 'POLIST', path='output', perProject = False):
+def outputPOList(poObjects, filename = 'POLIST', path='output'):
     """
     Write Objects into xls
 
-    :param Objects: A list of any class
+    :param poObjects: A list of any class
     :param filename: the file name
     :return: None
     """
     print("Prepare to output Excel file.")
-    Objects.sort(key=lambda x: x.ZTE_PO_Nr, reverse=False)
+    poObjects.sort(key=lambda x: x.ZTE_PO_Nr, reverse=False)
     tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")
     filename = re.sub('\s','',filename) +'_'+ tims
-    outputObjectsToFile(Objects,filename,'output/polist/' )
+    outputObjectsToFile(poObjects,filename,'output/polist/' )
+    projects = list(set([p.Sheetname for p in poObjects]))
+    book = Workbook()
+
 
 
 
@@ -207,6 +210,16 @@ def outputDeliverRecord(result, outputfile = 'All_Delievery', outputpath='output
     book.save(outputpath + outputfile + '.xls')
 
 
+def outputListOfTupleToFile(listofTuple, filename, path):
+
+    book = Workbook()
+    sheet = book.add_sheet(filename)
+    for rowx in range(len(listofTuple)):
+        tup = listofTuple[rowx]
+        for colx in range(len(tup)):
+            sheet.write(rowx, colx, tup[colx])
+    book.save(path + '/' + filename +'.xls')
+    print("Output tuple to file", path + filename)
 
 def getNowAsString():
     tims = datetime.datetime.now().strftime("%Y%m%d_%H%M")

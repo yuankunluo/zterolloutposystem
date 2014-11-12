@@ -210,36 +210,26 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
     hiddenCount = 0
     # delete empty header cell
     for rowx in range(1,sheet.nrows):
-        if rowx not in sheet.hiddenlist:
+        if rowx in sheet.hiddenlist:
+            hiddenCount += 1
         # test this row's empty
-            rowlist = [unicode(c.value) for c in sheet.row(rowx)]
-            rowset = set(rowlist)
-            if len(rowset) == 1:
-                if ''.join(rowlist) == '':
-                    continue
-                else:
-                    rowObj = ExcelRowObject()
-                    for h in HEADER:
-                        rowObj.__dict__[h] = None
-                    rowObj.Source = sheet.source
-                    rowObj.Filename = sheet.filename
-                    rowObj.Sheetname = sheet.name
-                    rowObj.Rowindex = rowx
-                    try:
-                        for hx in range(len(HEADER)):
-                            if len(unicode(sheet.cell(rowx, hx).value)) != 0:
-                                rowObj.__dict__[HEADER[hx]] = sheet.cell(rowx, hx).value
-                    except Exception:
-                        pass
-                    result.append(rowObj)
+        rowlist = [unicode(c.value) for c in sheet.row(rowx)]
+        rowset = set(rowlist)
+        if len(rowset) == 1:
+            if ''.join(rowlist) == '':
+                continue
             else:
                 rowObj = ExcelRowObject()
+                for h in HEADER:
+                    rowObj.__dict__[h] = None
                 rowObj.Source = sheet.source
                 rowObj.Filename = sheet.filename
                 rowObj.Sheetname = sheet.name
                 rowObj.Rowindex = rowx
-                for h in HEADER:
-                        rowObj.__dict__[h] = None
+                if rowx in sheet.hiddenlist:
+                    rowObj.Hidden = True
+                else:
+                    rowObj.Hidden = False
                 try:
                     for hx in range(len(HEADER)):
                         if len(unicode(sheet.cell(rowx, hx).value)) != 0:
@@ -248,9 +238,25 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
                     pass
                 result.append(rowObj)
         else:
-            # print("Find hidden row", rowx, sheet.name, sheet.source)
-            hiddenCount += 1
-            continue
+            rowObj = ExcelRowObject()
+            rowObj.Source = sheet.source
+            rowObj.Filename = sheet.filename
+            rowObj.Sheetname = sheet.name
+            rowObj.Rowindex = rowx
+            if rowx in sheet.hiddenlist:
+                rowObj.Hidden = True
+            else:
+                rowObj.Hidden = False
+            for h in HEADER:
+                    rowObj.__dict__[h] = None
+            try:
+                for hx in range(len(HEADER)):
+                    if len(unicode(sheet.cell(rowx, hx).value)) != 0:
+                        rowObj.__dict__[HEADER[hx]] = sheet.cell(rowx, hx).value
+            except Exception:
+                pass
+            result.append(rowObj)
+
     print("fileReader: CoverRowObject rate", len(result),sheet.nrows-1,
           'Hidden', hiddenCount, sheet.nrows-1 - hiddenCount ,
             sheet.name, sheet.source)
@@ -353,7 +359,13 @@ def clearUnicode(value):
         return None
     if len(unicode(value)) == 0:
         return None
+    if value == 42:
+        return None
     value = unicode(value)
+    if value == 'True':
+        return True
+    if value == 'False':
+        return False
     if re.match('none|n.*a|n.*v|error', value, re.IGNORECASE):
         return None
     # replace number after .

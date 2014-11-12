@@ -19,7 +19,7 @@ def getAllDataAndWriteToFileDict():
 def go():
     sapdns = recordReader.get0_AllSapDeleiveryRecordInPath()
     mixedzpo = recordReader.get1_AllMixedZtePowithSapPoFromPath()
-    orbmid = recordReader.get2_AllSapOrderBmidInPath()
+    orbmid = recordReader.get2_AllOrderBmidInPath()
     bmstatus = recordReader.get3_AllBMStatusRecordInPath()
 
     print("Enter compare")
@@ -149,6 +149,7 @@ def step2_addBMstatusToSapdn(result1, bmstatus, output=True):
         fileWriter.outputObjectsToFile(error,
                                        'Step2_result_error_no_BMSTATUS_' + fileWriter.getNowAsString(),
                                        'output/error/')
+
         recordReader.storeRawData(result,"Result_2_SAPDN_with_BMID_BMSTATUS")
         recordReader.storeRawData(result92,"Result_2_SAPDN_with_BMID_BMSTATUS_92")
         recordReader.storeRawData(error,"Result_2_SAPDN_Without_BMSTATUS")
@@ -259,6 +260,9 @@ def step3_FilterOnlyZTEPO(result2, mixedZtepo, output=True):
         fileWriter.outputObjectsToFile(error,
                                        'Step3_result_error_no_match_' + fileWriter.getNowAsString(),
                                        'output/error/')
+        fileWriter.outputObjectsToFile(result2,
+                                       'Step3_result_sapdn' + fileWriter.getNowAsString(),
+                                       'output/raw/')
     print("Done,", donecount,"DN",len(result_DN) ,"Doublematch", doublematchcount, "Error",errorcount)
 
     # # create unique_pm for ztepos

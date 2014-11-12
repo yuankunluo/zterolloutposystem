@@ -39,19 +39,28 @@ def goThroughPolistDirectory(path = 'input/po_polist/', outputfile = 'ALL_ZTE_PO
     rowObjs = fileReader.getAllRowObjectInPath(path)
     poObjes = []
     wrongPos = []
+    hidden = []
     for robj in rowObjs:
         coverresult = __readPoRecordFromRowobje(robj)
         if coverresult:
             poObjes.extend(coverresult[0])
             wrongPos.extend(coverresult[1])
-    poObjes = [poObj for poObj in poObjes if poObj is not None]
+    hidden = [poObj for poObj in poObjes if poObj.Hidden]
+    poObjes = [poObj for poObj in poObjes if poObj is not None and not poObj.Hidden]
+
+    ztemcodes = [(poObj.Material_Code, poObj.Product_Description) for poObj in poObjes
+                if re.match('^5\d+', poObj.Material_Code)
+                ]
+    ztemcodes = list(set(ztemcodes))
 
     if updateWithSAPPO:
         pass
 
     if output:
-        fileWriter.outputPOList(poObjes, outputfile, outputpath, perProject=True)
-        fileWriter.outputObjectsToFile(wrongPos, 'No-valid-po', 'output/error/')
+        fileWriter.outputPOList(poObjes, outputfile, outputpath)
+        fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
+        fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
+        fileWriter.outputListOfTupleToFile(ztemcodes,'zte_mcodes','output/zte_mcodes')
         print("Statistic %d PO Records in File %s"%(len(poObjes), outputfile))
     print("[Trans Rate]",len(poObjes), len(rowObjs), len(poObjes)-len(rowObjs))
     return poObjes
@@ -107,7 +116,8 @@ def __readPoRecordFromRowobje(rowObj):
      'Remark':'Remark$',
      'ZTE_Contract_No':'ZTE_Contract_No$',
      'CM_No':'CM_No$',
-     'CM_Date':'CM_Date$$'
+     'CM_Date':'CM_Date$$',
+     'Hidden':'Hidden$',
     }
 
     poObj = PORecord()
