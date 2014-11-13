@@ -166,7 +166,7 @@ def get2_AllOrderBmidInPath(path = 'input/po_oder_bmid/', output = True):
              u'NotesID'
     ]
 
-    rows = fileReader.getAllRowObjectInPath(path)
+    rows = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
     orbmid = []
     dupCount = 0
     for drRow in rows:
@@ -217,7 +217,7 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
 
 
     drObjects = []
-    drRows = fileReader.getAllRowObjectInPath(path)
+    drRows = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
     print("Read rows",len(drRows))
 
     # cover rows as bmboject

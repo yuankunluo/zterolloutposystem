@@ -74,6 +74,9 @@ def __readAllBookFilesInBook(path):
     :param recursive: token if recursively read files
     :return: all books objects
     """
+    if path is None:
+        return None
+    print("__readAllBookFilesInBook", path)
     book = open_workbook(path)
     book.source = path
     reg_f = '\.xls$|\.xlsx$'
@@ -151,8 +154,11 @@ def __readAllSheetsFromBook(book):
     :param book: the Workbook instance
     :return: a list of sheets
     """
-    sheets = []
 
+    fileNameRegx='^.*\.(xls|xlsx)$'
+    sheets = []
+    if book is None:
+        return []
     for s_index in range(len(book.sheets())):
         s = book.sheet_by_index(s_index) # geht sheet using index
         s.index = s_index
@@ -472,9 +478,8 @@ def test(dng):
                 print(k, v, type(v))
 
 
-def getTheNewestFileLocationInPath(path, fileNameRegx=None,
-                                   recursively = False,
-                                   fileExtentionRegx = '\.xls|\.xlxs'):
+def getTheNewestFileLocationInPath(path, fileNameRegx='^.*\.(xls|xlsx)$',
+                                   recursively = False):
     filesList = []
     if not recursively:
         for fn in os.listdir(path):
@@ -491,19 +496,15 @@ def getTheNewestFileLocationInPath(path, fileNameRegx=None,
 
     for fTupe in filesList:
         fname = fTupe[0]
-        if fileNameRegx and fileExtentionRegx:
-            if (not re.match(fileNameRegx, fname, re.IGNORECASE)) and (not re.match(
-                    fileExtentionRegx, fname, re.IGNORECASE)):
-                filesList.remove(fTupe)
-                continue
-        if fileNameRegx:
-            if not re.match(fileNameRegx, fname, re.IGNORECASE):
-                filesList.remove(fTupe)
-                continue
-        if fileExtentionRegx:
-            if not re.match(fileExtentionRegx, fname, re.IGNORECASE):
-                filesList.remove(fTupe)
-                continue
+        if fname and not fname.startswith('.'):
+            # print(fname)
+            if fileNameRegx:
+                if not re.match(fileNameRegx, fname, re.IGNORECASE):
+                    print("File Extension no match", fname, fileNameRegx)
+                    filesList.remove(fTupe)
+                    continue
+        else:
+            filesList.remove(fTupe)
     max_mtime = 0
     max_file = None
     for fTupe in filesList:
