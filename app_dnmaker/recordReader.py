@@ -71,7 +71,7 @@ def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
 
 
 def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
-                                      referencepopath = 'input/po_zte_to_sap/',
+                                      referencepopath = 'input/po_sappolist/',
                                       output=True):
     """
 
@@ -99,6 +99,7 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
                 ref_dict[refpo.Reference_PO_Number].add((refpo.PurchNo, refpo.Material))
 
     sappo_unis = [(refpo.PurchNo, refpo.Material) for refpo in references]
+    sappo_Source = references[0].Source
 
     sing_refCount = 0
     more_refCount = 0
@@ -114,6 +115,7 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
             if zte_unique in sappo_unis:
                 zpo.SAP_PO_Nr = zpo.ZTE_PO_Nr
                 zpo.SAP_Material = zpo.ZTE_Material
+                zpo.SAP_PO_Source = sappo_Source
                 result.append(zpo)
                 continue
 
@@ -125,6 +127,7 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
                     tup = ref_set.pop()
                     zpo.SAP_PO_Nr = tup[0]
                     zpo.SAP_Material = tup[1]
+                    zpo.SAP_PO_Source = sappo_Source
                     result.append(zpo)
                     sing_refCount += 1
                 if len(ref_set) > 1:
@@ -133,6 +136,7 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
                         newZPO = copy.deepcopy(zpo)
                         newZPO.SAP_PO_Nr = tup[0]
                         newZPO.SAP_Material = tup[1]
+                        newZPO.SAP_PO_Source = sappo_Source
                         result.append(newZPO)
                         morematch.append(newZPO)
                         more_refCount += 1

@@ -127,15 +127,17 @@ def __readPoRecordFromRowobje(rowObj):
     if poObj.ZTE_PO_Nr and poObj.ZTE_Material and poObj.Site_ID and poObj.Qty:
         poObj.Origin_Mcode = poObj.ZTE_Material
         reg_splt_m = '[^0-9]+'
-        mc_list = re.split(reg_splt_m, poObj.ZTE_Material, re.IGNORECASE)
-        qty_list = re.split(reg_splt_m, poObj.Qty, re.IGNORECASE)
+        mc_list = re.split(reg_splt_m, poObj.ZTE_Material)
+        qty_list = re.split(reg_splt_m, poObj.Qty)
         # compare mclist and qty_list
         mq_tuples = __rematchMclistAndQtylist(mc_list, qty_list)
         for mq_t in mq_tuples:
-            newpoObj = copy.deepcopy(poObj)
-            newpoObj.ZTE_Material = mq_t[0]
-            newpoObj.Qty = mq_t[1]
-            result.append(newpoObj)
+            reg_mc = '([0-9]{5,})'
+            if mq_t[0] and re.match(reg_mc, mq_t[0]):
+                newpoObj = copy.deepcopy(poObj)
+                newpoObj.ZTE_Material = mq_t[0]
+                newpoObj.Qty = mq_t[1]
+                result.append(newpoObj)
     else:
         wrongpo.append(poObj)
     return (result, wrongpo)
