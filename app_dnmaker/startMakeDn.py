@@ -250,22 +250,22 @@ def step3_FilterOnlyZTEPO(result2, mixedZtepo, output=True):
                 error.append(zpo)
                 errorcount += 1
 
-    result_DN = [zpo for zpo in result if zpo.IST92 and int(zpo.Still_to_be_delivered_qty) != 0]
+    # result_DN = [zpo for zpo in result if zpo.IST92 and int(zpo.Still_to_be_delivered_qty) != 0]
 
     if output:
         fileWriter.outputObjectsToFile(result,
                                        'Step3_result_all_' + fileWriter.getNowAsString('%Y%m%d'),
                                        'output/dn_maker/')
-        fileWriter.outputObjectsToFile(result_DN,
-                                       'Step3_result_DN_' + fileWriter.getNowAsString('%Y%m%d'),
-                                       'output/dn_maker/')
+        # fileWriter.outputObjectsToFile(result_DN,
+        #                                'Step3_result_DN_' + fileWriter.getNowAsString('%Y%m%d'),
+        #                                'output/dn_maker/')
         fileWriter.outputObjectsToFile(error,
                                        'Step3_result_error_no_match_' + fileWriter.getNowAsString(),
                                        'output/error/')
         fileWriter.outputObjectsToFile(result2,
                                        'Step3_result_sapdn' + fileWriter.getNowAsString(),
                                        'output/raw/')
-    print("Done,", donecount,"DN",len(result_DN) ,"Doublematch", doublematchcount, "Error",errorcount)
+    # print("Done,", donecount,"DN",len(result_DN) ,"Doublematch", doublematchcount, "Error",errorcount)
 
     # # create unique_pm for ztepos
     # for ztepo in ztepos:
@@ -319,6 +319,9 @@ def step3_FilterOnlyZTEPO(result2, mixedZtepo, output=True):
 
     return result
 
+
+def step4_combineMixzpoAndSapdn(sapdns, mixedzpo):
+    pass
 
 
 

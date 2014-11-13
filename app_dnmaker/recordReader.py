@@ -69,6 +69,68 @@ def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
     sappoObjects = __deleteDuplicate(sappoObjects)
     return sappoObjects
 
+def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=True):
+    """
+    Reads the sap output using ME2L, with vendor nr: 5043096
+    Change to account_view and layout, to put all header in table.
+
+    :param path:
+
+    :return:
+    """
+
+    attrs = [
+        u'Deletion_Indicator',
+        u'Document_Date',
+        u'Document_item',
+        u'Goods_recipient',
+        u'Material',
+        u'Order',
+        u'Order_Price_Unit',
+        u'Order_Quantity',
+        u'Order_Unit',
+        u'Purchasing_Document',
+        u'Purchasing_Info_Rec',
+        u'Still_to_be_delivered_qty',
+        u'Short_Text',
+        u'Goods_recipient'
+        ]
+
+
+
+    drObjects = []
+    drRows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
+    print("Read rows",len(drRows))
+
+    # cover rows as bmboject
+    for drRow in drRows:
+        drobj = DeliveryRecord()
+        drobj = initWithAttrsToNone(drobj, attrs)
+        for k, v in drRow.__dict__.items():
+            if k in attrs:
+                drobj.__dict__[k] = fileReader.clearUnicode(v)
+        drobj.Unique_PM = '-'.join([drobj.Purchasing_Document, drobj.Material])
+        drobj.SAP_Source = drRow.Source
+        drObjects.append(drobj)
+
+
+    alldrObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None
+                # and int(dn.Still_to_be_delivered_qty) != 0
+    ]
+
+    drObjects_clean = [dn for dn in drObjects if dn.Deletion_Indicator == None
+                and int(dn.Still_to_be_delivered_qty) != 0
+    ]
+    if output:
+        fileWriter.outputObjectsToFile(drObjects_clean,'Raw_0_SAPDN_clean','output/raw/')
+        # __storeRawData(drObjects_Clean, 'Raw_0_sap_dn_clean')
+        fileWriter.outputObjectsToFile(alldrObjects,'Raw_0_SAPDN_all','output/raw/')
+        # __storeRawData(alldrObjects, 'Raw_0_sap_dn_all')
+    print("SAPDN clean (still to be del.) rate", len(drObjects), len(alldrObjects))
+    return alldrObjects
+
+
+
 
 def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
                                       referencepopath = 'input/po_sappolist/',
@@ -109,8 +171,8 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
 
     # match sappo to ztepo, ztepo as reference
     for zpo in ztepos:
-        if zpo.CM_No:
-            continue
+        # if zpo.CM_No:
+        #     continue
         # if this zpo has zteponr and zte_mnr
         if zpo.ZTE_PO_Nr and zpo.ZTE_Material:
             #first check if this unique is in sappo_unis
@@ -196,66 +258,6 @@ def get2_AllOrderBmidInPath(path = 'input/po_oder_bmid/', output = True):
     return orbmid
 
 
-
-def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=True):
-    """
-    Reads the sap output using ME2L, with vendor nr: 5043096
-    Change to account_view and layout, to put all header in table.
-
-    :param path:
-
-    :return:
-    """
-
-    attrs = [
-        u'Deletion_Indicator',
-        u'Document_Date',
-        u'Document_item',
-        u'Goods_recipient',
-        u'Material',
-        u'Order',
-        u'Order_Price_Unit',
-        u'Order_Quantity',
-        u'Order_Unit',
-        u'Purchasing_Document',
-        u'Purchasing_Info_Rec',
-        u'Still_to_be_delivered_qty',
-        u'Short_Text',
-        u'Goods_recipient'
-        ]
-
-
-
-    drObjects = []
-    drRows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
-    print("Read rows",len(drRows))
-
-    # cover rows as bmboject
-    for drRow in drRows:
-        drobj = DeliveryRecord()
-        drobj = initWithAttrsToNone(drobj, attrs)
-        for k, v in drRow.__dict__.items():
-            if k in attrs:
-                drobj.__dict__[k] = fileReader.clearUnicode(v)
-        drobj.Unique_PM = '-'.join([drobj.Purchasing_Document, drobj.Material])
-        drobj.SAP_Source = drRow.Source
-        drObjects.append(drobj)
-
-
-    alldrObjects = [dn for dn in drObjects if dn.Deletion_Indicator == None
-                # and int(dn.Still_to_be_delivered_qty) != 0
-    ]
-
-    drObjects_clean = [dn for dn in drObjects if dn.Deletion_Indicator == None
-                and int(dn.Still_to_be_delivered_qty) != 0
-    ]
-    if output:
-        fileWriter.outputObjectsToFile(drObjects_clean,'Raw_0_SAPDN_clean','output/raw/')
-        # __storeRawData(drObjects_Clean, 'Raw_0_sap_dn_clean')
-        fileWriter.outputObjectsToFile(alldrObjects,'Raw_0_SAPDN_all','output/raw/')
-        # __storeRawData(alldrObjects, 'Raw_0_sap_dn_all')
-    print("SAPDN clean (still to be del.) rate", len(drObjects), len(alldrObjects))
-    return alldrObjects
 
 
 def __get_AllBM2StatusRecordInPath(path='input/po_bmstatus2/', output=True):
