@@ -172,6 +172,7 @@ def get2_AllOrderBmidInPath(path = 'input/po_oder_bmid/', output = True):
     for drRow in rows:
         sapPO = OrderBmidRecord()
         sapPO = initWithAttrsToNone(sapPO, attris)
+        sapPO.Order_Source = drRow.Source
         for k, v in drRow.__dict__.items():
             if k in attris:
                 sapPO.__dict__[k] = fileReader.clearUnicode(v)
@@ -228,6 +229,7 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
             if k in attrs:
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
         drobj.Unique_PM = '-'.join([drobj.Purchasing_Document, drobj.Material])
+        drobj.SAP_Source = drRows.Source
         drObjects.append(drobj)
 
 
