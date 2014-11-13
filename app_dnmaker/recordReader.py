@@ -83,6 +83,8 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
     ztepos = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(ztepopath))
     references = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(referencepopath))
 
+    #@todo report the po-mr problem
+
 
     result = []
     nonmatch = []
@@ -107,6 +109,8 @@ def get1_AllMixedZtePowithSapPoFromPath(ztepopath='output/polist/',
 
     # match sappo to ztepo, ztepo as reference
     for zpo in ztepos:
+        if zpo.CM_No:
+            continue
         # if this zpo has zteponr and zte_mnr
         if zpo.ZTE_PO_Nr and zpo.ZTE_Material:
             #first check if this unique is in sappo_unis
@@ -170,7 +174,7 @@ def get2_AllOrderBmidInPath(path = 'input/po_oder_bmid/', output = True):
              u'NotesID'
     ]
 
-    rows = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
+    rows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     orbmid = []
     dupCount = 0
     for drRow in rows:
@@ -217,12 +221,13 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
         u'Purchasing_Info_Rec',
         u'Still_to_be_delivered_qty',
         u'Short_Text',
+        u'Goods_recipient'
         ]
 
 
 
     drObjects = []
-    drRows = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
+    drRows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     print("Read rows",len(drRows))
 
     # cover rows as bmboject
@@ -233,7 +238,7 @@ def get0_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
             if k in attrs:
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
         drobj.Unique_PM = '-'.join([drobj.Purchasing_Document, drobj.Material])
-        drobj.SAP_Source = drRows.Source
+        drobj.SAP_Source = drRow.Source
         drObjects.append(drobj)
 
 

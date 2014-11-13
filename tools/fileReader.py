@@ -421,6 +421,10 @@ def getAllRowObjectInPath(path, recursive = False):
 
 
 def getAllRowObjectInBook(path):
+    # test if path is a non valid file
+    reg_nofile = '.*[~$]+.*'
+    if re.match(reg_nofile, path):
+        return []
     book = __readAllBookFilesInBook(path)
     sheets = __readAllSheetsWithHeaderInBook(book)
     rowObjs = []
