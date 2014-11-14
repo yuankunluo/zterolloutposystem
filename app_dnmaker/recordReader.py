@@ -258,7 +258,7 @@ def get4_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         if len(conflict_bmstatus) != 0:
             fileWriter.outputObjectsToFile(conflict_bmstatus,'RAW_4_BMSTATUS_conflict','output/error/')
         __storeRawData(result,'RAW_4_BMSTATUS_all')
-    print("BM Status Conflict Rate: ",len(conflict_bmstatus), len(result), 'Conflict: ', len(conflict_bmstatus))
+    print("BM Status Rate: ",len(result), len(rowObjs), 'Conflict: ', len(conflict_bmstatus))
     return result
 
 
