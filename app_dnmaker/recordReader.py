@@ -54,7 +54,13 @@ class BMStatus2(Record):
 
 
 
-def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
+def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_ztematerial_to_sappo_zztepolist/'):
+    """
+    Using all material code from ztepo to get all sappo
+
+    :param path:
+    :return:
+    """
     rows = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
     sappoObjects = []
 
@@ -71,7 +77,7 @@ def __getAllSapReferencesPoFromZTEPOInPath(path = 'input/po_zte_to_sap/'):
     return sappoObjects
 
 
-def get1_AllSappoRecordInPath(path='input/po_sappolist/', output=True):
+def get1_AllSappoRecordInPath(path = 'input/po_ztematerial_to_sappo_zztepolist/' , output=True):
     """
     Using material code to ge all sappo information
 
@@ -113,7 +119,7 @@ def get1_AllSappoRecordInPath(path='input/po_sappolist/', output=True):
 
 
 
-def get2_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=True):
+def get2_AllSapDeleiveryRecordInPath(path='input/po_vendor_to_sapdn_me2l/', output=True):
     """
     Reads the sap output using ME2L, with vendor nr: 5043096
     Change to account_view and layout, to put all header in table.
@@ -172,7 +178,7 @@ def get2_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
     return drObjects
 
 
-def get3_AllOrderBmidInPath(path='input/po_oder_bmid/', output = True):
+def get3_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output = True):
 
     attris = [
              u'Equipment',
@@ -180,30 +186,37 @@ def get3_AllOrderBmidInPath(path='input/po_oder_bmid/', output = True):
              u'NotesID'
     ]
 
-    rows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
-    orbmid = []
+    rows = fileReader.getAllRowObjectInPath(path)
+    orbmids = []
     missing = []
     missingCount = 0
+    duplicatCount = 0
     for drRow in rows:
-        sapPO = OrderBmidRecord()
-        sapPO = initWithAttrsToNone(sapPO, attris)
-        sapPO.Order_Source = drRow.Source
+        order = OrderBmidRecord()
+        order = initWithAttrsToNone(order, attris)
+        order.Order_Source = drRow.Source
         for k, v in drRow.__dict__.items():
             if k in attris:
-                sapPO.__dict__[k] = fileReader.clearUnicode(v)
-        if sapPO.Equipment and sapPO.Order and sapPO.NotesID:
-            orbmid.append(sapPO)
+                order.__dict__[k] = fileReader.clearUnicode(v)
+        if order.Equipment and order.Order and order.NotesID:
+            if order not in orbmids:
+                orbmids.append(order)
+            else:
+                duplicatCount += 1
         else:
-            missing.append(sapPO)
+            missing.append(order)
             missingCount += 1
 
     if output:
-        fileWriter.outputObjectsToFile(orbmid,'Raw_3_SAP_OrderBMID','output/dn_maker/')
+        fileWriter.outputObjectsToFile(orbmids,'Raw_3_SAP_OrderBMID','output/dn_maker/')
         if len(missing) != 0 :
             fileWriter.outputObjectsToFile(missing,'Raw_3_SAP_OrderBMID_Missing','output/error/')
-        storeRawData(orbmid,'Raw_3_SAP_OrderBMID')
-    print('Order Bmid Rate: ', len(orbmid), len(rows), 'Missing: ', missingCount)
-    return orbmid
+        storeRawData(orbmids,'Raw_3_SAP_OrderBMID')
+    print('Order Bmid Rate: ', len(orbmids), len(rows),
+          'Missing: ', missingCount,
+          'Duplicat', duplicatCount,
+    )
+    return orbmids
 
 
 
