@@ -17,6 +17,10 @@ def getAllDataAndWriteToFileDict():
 
 
 
+def step1_MixSapPOandZTEPO(sappos = None, ztepos= None):
+    if sappos == None:
+        sappos = recordReader.loadRawData()
+
 
 
 

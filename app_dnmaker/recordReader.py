@@ -107,7 +107,7 @@ def get1_AllSappoRecordInPath(path='input/po_sappolist/', output=True):
             missCount += 1
     if output:
         fileWriter.outputObjectsToFile(sapopo_list,'Raw_1_SAP_POLIST','output/dn_maker/')
-        __storeRawData(sapopo_list,'Raw_1_SAP_POLIST')
+        storeRawData(sapopo_list,'Raw_1_SAP_POLIST')
     print("SAP PO rate", len(sapopo_list), len(rowObjs), "Information Miss",missCount)
     return sapopo_list
 
@@ -167,7 +167,7 @@ def get2_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
         fileWriter.outputObjectsToFile(drObjects,'Raw_2_SAP_DN','output/dn_maker/')
         if len(missing) != 0:
             fileWriter.outputObjectsToFile(missing,'Raw_2_SAP_DN_Missing','output/error/')
-        __storeRawData(drObjects,'Raw_2_SAP_DN')
+        storeRawData(drObjects,'Raw_2_SAP_DN')
     print("SAP DN Rate: ", len(drObjects), len(drRows), 'Missing: ', missingCount )
     return drObjects
 
@@ -201,7 +201,7 @@ def get3_AllOrderBmidInPath(path='input/po_oder_bmid/', output = True):
         fileWriter.outputObjectsToFile(orbmid,'Raw_3_SAP_OrderBMID','output/dn_maker/')
         if len(missing) != 0 :
             fileWriter.outputObjectsToFile(missing,'Raw_3_SAP_OrderBMID_Missing','output/error/')
-        __storeRawData(orbmid,'Raw_3_SAP_OrderBMID')
+        storeRawData(orbmid,'Raw_3_SAP_OrderBMID')
     print('Order Bmid Rate: ', len(orbmid), len(rows), 'Missing: ', missingCount)
     return orbmid
 
@@ -257,7 +257,7 @@ def get4_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         fileWriter.outputObjectsToFile(result,'RAW_4_BMSTATUS_all','output/dn_maker/')
         if len(conflict_bmstatus) != 0:
             fileWriter.outputObjectsToFile(conflict_bmstatus,'RAW_4_BMSTATUS_conflict','output/error/')
-        __storeRawData(result,'RAW_4_BMSTATUS_all')
+        storeRawData(result,'Raw_4_BMSTATUS_all')
     print("BM Status Rate: ",len(result), len(rowObjs), 'Conflict: ', len(conflict_bmstatus))
     return result
 
@@ -288,7 +288,7 @@ def loadRawData(path):
     print("Load %d records"%(len(fileDict)))
     return fileDict
 
-def __storeRawData(object, filename, path='output/raw/'):
+def storeRawData(object, filename, path='output/raw/'):
     try:
         with open(path + filename+ '.raw', 'wb') as f:
             pickle.dump(object, f)

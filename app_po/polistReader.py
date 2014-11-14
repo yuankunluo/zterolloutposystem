@@ -4,7 +4,7 @@ import datetime
 import os
 import re
 from time import gmtime, strftime
-import app_dnmaker.recordReader as rReader
+import app_dnmaker.recordReader as recordReader
 
 import logging
 import copy
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 # ------------------ POLIST Model ------------------------------
 
-class PORecord():
+class ZTEPORecord():
     """
     Present the PO record from ZTE Deutschland
     """
@@ -49,7 +49,7 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
     hidden = [poObj for poObj in poObjes if poObj.Hidden]
     poObjes = [poObj for poObj in poObjes if poObj is not None and not poObj.Hidden]
 
-    ztemcodes = [(poObj.ZTE_Material, poObj.Product_Description) for poObj in poObjes
+    ztemcodes = [(poObj.ZTE_Material, poObj.ZTE_Product_Description) for poObj in poObjes
                 if re.match('^5\d+', poObj.ZTE_Material)
                 ]
     ztemcodes = list(set(ztemcodes))
@@ -59,8 +59,10 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
         fileWriter.outputObjectsToFile(poObjes,
                                        outputfile + fileWriter.getNowAsString(),
                                        outputpath)
+        recordReader.storeRawData(poObjes,'Raw_0_ZTEPOLIST')
         if len(wrongPos) != 0:
             fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
+
         if len(hidden)!= 0:
             fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
         fileWriter.outputListOfTupleToFile(ztemcodes,'zte_mcodes','output/zte_mcodes')
@@ -85,25 +87,24 @@ def __readPoRecordFromRowobje(rowObj):
     # regx
     regx_header = {
      'ZTE_PO_Nr':'2510$|PO$|PO_Nr$|PO$|PO_No$',
-     'Delivery_Date':'Delivery_DateDDMMYY$|Delivery_DateDDMMYY$|Delivery_Date$',
-     'Product_Description': 'Description$|Product_Description$|Product_Description$',
-     'Item_Code':'Item_Code$|Item_Code$',
+     'ZTE_Delivery_Date':'Delivery_DateDDMMYY$|Delivery_DateDDMMYY$|Delivery_Date$',
+     'ZTE_Product_Description': 'Description$|Product_Description$|Product_Description$',
+     'ZTE_Item_Code':'Item_Code$|Item_Code$',
      'ZTE_Material':'Material_Code$|Materialnr$|PRODUCT_CODE$|Product Code$|Product_Code$',
-     'PO_Amount': 'PO_Amount_Euro$|PO_AmountEuro$',
-     'PO_Date': 'PO_Date$|PO_DateDDMMYY$',
-     'Qty': 'Qty$',
-     'Site_ID':'Site_ID$|Site_ID$',
-     'SAP_PO_Nr':'SAP_PONR',
-     'Origin_Mcode':'Origin_Mcode',
-     'Remark':'Remark$',
+     'ZTE_PO_Amount': 'PO_Amount_Euro$|PO_AmountEuro$',
+     'ZTE_PO_Date': 'PO_Date$|PO_DateDDMMYY$',
+     'ZTE_Qty': 'Qty$',
+     'ZTE_Site_ID':'Site_ID$|Site_ID$',
+     'ZTE_Origin_Mcode':'Origin_Mcode',
+     'ZTE_Origin_Qty':'ZTE_Origin_Qty',
+     'ZTE_Remark':'Remark$',
      'ZTE_Contract_No':'ZTE_Contract_No$',
-     'CM_No':'CM_No$',
-     'CM_Date':'CM_Date$$',
+     'ZTE_CM_No':'CM_No$',
+     'ZTE_CM_Date':'CM_Date$$',
      'Hidden':'Hidden$',
-     'SAP_Material':'^Material$',
     }
 
-    poObj = PORecord()
+    poObj = ZTEPORecord()
     # initial po object
     for k, v in regx_header.items():
         poObj.__dict__[k] = None
@@ -127,21 +128,28 @@ def __readPoRecordFromRowobje(rowObj):
 
     result = []
     wrongpo = []
-    if poObj.ZTE_PO_Nr and poObj.ZTE_Material and poObj.Site_ID and poObj.Qty:
-        if re.match('([0-9]+.*)', poObj.Site_ID):
+    if poObj.ZTE_PO_Nr and poObj.ZTE_Material and poObj.ZTE_Site_ID and poObj.ZTE_Qty:
+        if re.match('([0-9]+.*)', poObj.ZTE_Site_ID):
             poObj.Origin_Mcode = poObj.ZTE_Material
             reg_splt_m = '[^0-9]+'
             mc_list = re.split(reg_splt_m, poObj.ZTE_Material)
-            qty_list = re.split(reg_splt_m, poObj.Qty)
+            qty_list = re.split(reg_splt_m, poObj.ZTE_Qty)
             # compare mclist and qty_list
             mq_tuples = __rematchMclistAndQtylist(mc_list, qty_list)
             for mq_t in mq_tuples:
                 reg_mc = '([0-9]{5,})'
                 if mq_t[0] and re.match(reg_mc, mq_t[0]):
-                    newpoObj = copy.deepcopy(poObj)
-                    newpoObj.ZTE_Material = mq_t[0]
-                    newpoObj.Qty = mq_t[1]
-                    result.append(newpoObj)
+                    newztepo = ZTEPORecord()
+                    for k, v in poObj.__dict__.items():
+                        if k in regx_header.keys():
+                            newztepo.__dict__[k] = v
+                    newztepo.ZTE_Origin_Mcode = poObj.ZTE_Material
+                    newztepo.ZTE_Origin_Qty = poObj.ZTE_Qty
+                    newztepo.ZTE_POSource = poObj.Source
+                    newztepo.ZTE_Project = poObj.Sheetname
+                    newztepo.ZTE_Material = mq_t[0]
+                    newztepo.ZTE_Qty = mq_t[1]
+                    result.append(newztepo)
         else:
             wrongpo.append(poObj)
     return (result, wrongpo)
