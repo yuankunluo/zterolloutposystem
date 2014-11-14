@@ -67,8 +67,10 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
             fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
         fileWriter.outputListOfTupleToFile(ztemcodes,'zte_mcodes','output/zte_mcodes')
         print("Statistic %d PO Records in File %s"%(len(poObjes), outputfile))
+
     print("[Trans Rate]",len(poObjes), len(rowObjs),'Diff', len(poObjes)-len(rowObjs),
             "Hidden", len(hidden), "Unvalid",len(wrongPos))
+
     return poObjes
 
 
