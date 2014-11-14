@@ -118,6 +118,8 @@ def get2_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
     Reads the sap output using ME2L, with vendor nr: 5043096
     Change to account_view and layout, to put all header in table.
 
+    *** Please delete the second Item column in excel ***
+
     :param path:
 
     :return:
@@ -145,7 +147,8 @@ def get2_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
 
     drObjects = []
     drRows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
-
+    missing = []
+    missingCount = 0
     # cover rows as bmboject
     for drRow in drRows:
         drobj = DeliveryRecord()
@@ -153,14 +156,19 @@ def get2_AllSapDeleiveryRecordInPath(path='input/po_deliver_records/', output=Tr
         for k, v in drRow.__dict__.items():
             if k in attrs:
                 drobj.__dict__[k] = fileReader.clearUnicode(v)
-        drobj.Unique_PM = '-'.join([drobj.Purchasing_Document, drobj.Material])
-        drobj.SAP_Source = drRow.Source
-        drObjects.append(drobj)
-
+        if drobj.Purchasing_Document and drobj.Material and drobj.Order and drobj.Still_to_be_delivered_qty:
+            drobj.SAP_Source = drRow.Source
+            drObjects.append(drobj)
+        else:
+            missing.append(drobj)
+            missingCount += 1
 
     if output:
         fileWriter.outputObjectsToFile(drObjects,'Raw_2_SAP_DN','output/dn_maker/')
+        if len(missing) != 0:
+            fileWriter.outputObjectsToFile(missing,'Raw_2_SAP_DN_Missing','output/error/')
         __storeRawData(drObjects,'Raw_2_SAP_DN')
+    print("SAP DN Rate: ", len(drObjects), len(drRows), 'Missing: ', missingCount )
     return drObjects
 
 
@@ -174,7 +182,8 @@ def get3_AllOrderBmidInPath(path='input/po_oder_bmid/', output = True):
 
     rows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     orbmid = []
-    dupCount = 0
+    missing = []
+    missingCount = 0
     for drRow in rows:
         sapPO = OrderBmidRecord()
         sapPO = initWithAttrsToNone(sapPO, attris)
@@ -182,14 +191,18 @@ def get3_AllOrderBmidInPath(path='input/po_oder_bmid/', output = True):
         for k, v in drRow.__dict__.items():
             if k in attris:
                 sapPO.__dict__[k] = fileReader.clearUnicode(v)
-        if sapPO not in orbmid:
+        if sapPO.Equipment and sapPO.Order and sapPO.NotesID:
             orbmid.append(sapPO)
         else:
-            dupCount += 1
+            missing.append(sapPO)
+            missingCount += 1
 
     if output:
         fileWriter.outputObjectsToFile(orbmid,'Raw_3_SAP_OrderBMID','output/dn_maker/')
+        if len(missing) != 0 :
+            fileWriter.outputObjectsToFile(missing,'Raw_3_SAP_OrderBMID_Missing','output/error/')
         __storeRawData(orbmid,'Raw_3_SAP_OrderBMID')
+    print('Order Bmid Rate: ', len(orbmid), len(rows), 'Missing: ', missingCount)
     return orbmid
 
 
@@ -242,9 +255,10 @@ def get4_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
 
     if output:
         fileWriter.outputObjectsToFile(result,'RAW_4_BMSTATUS_all','output/dn_maker/')
-        fileWriter.outputObjectsToFile(conflict_bmstatus,'RAW_4_BMSTATUS_conflict','output/error/')
+        if len(conflict_bmstatus) != 0:
+            fileWriter.outputObjectsToFile(conflict_bmstatus,'RAW_4_BMSTATUS_conflict','output/error/')
         __storeRawData(result,'RAW_4_BMSTATUS_all')
-    print("BM Status Conflict Rate: ",len(conflict_bmstatus), len(result))
+    print("BM Status Conflict Rate: ",len(conflict_bmstatus), len(result), 'Conflict: ', len(conflict_bmstatus))
     return result
 
 

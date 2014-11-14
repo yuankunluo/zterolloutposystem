@@ -431,7 +431,7 @@ def getAllRowObjectInBook(path):
     for s in sheets:
         rowObj = covertSheetRowIntoRowObjectFromSheet(s)
         rowObjs.extend(rowObj)
-    print("Read %d Rowobjects from %s"%(len(rowObjs, path)))
+    print("Read %d Rowobjects from %s"%(len(rowObjs), path))
     return rowObjs
 
 

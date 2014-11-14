@@ -27,9 +27,9 @@ class PORecord():
 
 # ----------- Gothrough -----------------------------------------
 
-def goThroughPolistDirectory(path = 'input/po_polist/',
+def goThroughPolistDirectory(path = 'input/po_ztepolist/',
                              outputfile='ALL_ZTE_PO_List',
-                             outputpath='output/polist/',
+                             outputpath='output/zte_polist/',
                              output=True):
     """
 
@@ -59,11 +59,14 @@ def goThroughPolistDirectory(path = 'input/po_polist/',
         fileWriter.outputObjectsToFile(poObjes,
                                        outputfile + fileWriter.getNowAsString(),
                                        outputpath)
-        fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
-        fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
+        if len(wrongPos) != 0:
+            fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
+        if len(hidden)!= 0:
+            fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
         fileWriter.outputListOfTupleToFile(ztemcodes,'zte_mcodes','output/zte_mcodes')
         print("Statistic %d PO Records in File %s"%(len(poObjes), outputfile))
-    print("[Trans Rate]",len(poObjes), len(rowObjs), len(poObjes)-len(rowObjs))
+    print("[Trans Rate]",len(poObjes), len(rowObjs),'Diff', len(poObjes)-len(rowObjs),
+            "Hidden", len(hidden), "Unvalid",len(wrongPos))
     return poObjes
 
 
@@ -125,21 +128,22 @@ def __readPoRecordFromRowobje(rowObj):
     result = []
     wrongpo = []
     if poObj.ZTE_PO_Nr and poObj.ZTE_Material and poObj.Site_ID and poObj.Qty:
-        poObj.Origin_Mcode = poObj.ZTE_Material
-        reg_splt_m = '[^0-9]+'
-        mc_list = re.split(reg_splt_m, poObj.ZTE_Material)
-        qty_list = re.split(reg_splt_m, poObj.Qty)
-        # compare mclist and qty_list
-        mq_tuples = __rematchMclistAndQtylist(mc_list, qty_list)
-        for mq_t in mq_tuples:
-            reg_mc = '([0-9]{5,})'
-            if mq_t[0] and re.match(reg_mc, mq_t[0]):
-                newpoObj = copy.deepcopy(poObj)
-                newpoObj.ZTE_Material = mq_t[0]
-                newpoObj.Qty = mq_t[1]
-                result.append(newpoObj)
-    else:
-        wrongpo.append(poObj)
+        if re.match('([0-9]+.*)', poObj.Site_ID):
+            poObj.Origin_Mcode = poObj.ZTE_Material
+            reg_splt_m = '[^0-9]+'
+            mc_list = re.split(reg_splt_m, poObj.ZTE_Material)
+            qty_list = re.split(reg_splt_m, poObj.Qty)
+            # compare mclist and qty_list
+            mq_tuples = __rematchMclistAndQtylist(mc_list, qty_list)
+            for mq_t in mq_tuples:
+                reg_mc = '([0-9]{5,})'
+                if mq_t[0] and re.match(reg_mc, mq_t[0]):
+                    newpoObj = copy.deepcopy(poObj)
+                    newpoObj.ZTE_Material = mq_t[0]
+                    newpoObj.Qty = mq_t[1]
+                    result.append(newpoObj)
+        else:
+            wrongpo.append(poObj)
     return (result, wrongpo)
 
 
