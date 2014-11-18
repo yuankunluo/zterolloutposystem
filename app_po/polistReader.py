@@ -38,7 +38,7 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
     """
     # read rowobj from path
 
-    rowObjs = fileReader.getAllRowObjectInPath(path)
+    rowObjs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     poObjes = []
     wrongPos = []
     for robj in rowObjs:
@@ -59,14 +59,13 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
         fileWriter.outputObjectsToFile(poObjes,
                                        outputfile + fileWriter.getNowAsString(),
                                        outputpath)
-        recordReader.storeRawData(poObjes,'Raw_0_ZTEPOLIST')
+        recordReader.storeRawData(poObjes,'Raw_ZTEPOLIST')
         if len(wrongPos) != 0:
             fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
-
         if len(hidden)!= 0:
             fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
         fileWriter.outputListOfTupleToFile(ztemcodes,'zte_mcodes','output/zte_mcodes')
-        print("Statistic %d PO Records in File %s"%(len(poObjes), outputfile))
+        print("Statistic %d PO Records in File %s" % (len(poObjes), outputfile))
 
     print("[Trans Rate]",len(poObjes), len(rowObjs),'Diff', len(poObjes)-len(rowObjs),
             "Hidden", len(hidden), "Unvalid",len(wrongPos))

@@ -10,11 +10,11 @@ import copy
 import re
 
 def getAllData():
-    sappos = recordReader.get1_AllSappoRecordInPath()
-    sappns = recordReader.get2_AllSapDeleiveryRecordInPath()
-    orbmids = recordReader.get3_AllOrderBmidInPath()
+    sappos = recordReader.get_AllSappoInPath()
+    sappns = recordReader.get_AllSapdnInPath()
+    orbmids = recordReader.get_AllOrderBmidInPath()
     ztepos = poReader.goThroughPolistDirectory()
-    bmstatus = recordReader.get4_AllBMStatusRecordInPath()
+    bmstatus = recordReader.get_AllBMStatusRecordInPath()
 
     raw_dict = {}
     raw_dict['sappos'] = sappos
@@ -48,48 +48,158 @@ def doProductDN(raw_dict):
 
 
 
-def step1_AddOrbmidsToSapdns(orbmids, sapdns):
+def new_step1_AddOrbmidsToSapdns(orbmids = None, sapdns = None):
     """
 
     :param orbmids:
     :param sapdns:
     :return:
     """
-    # build order-orbmid dict
+    # build order dict
     orbmids_dict = {}
-    orderDups = []
+    order_dup = set()
     for orbmid in orbmids:
         if orbmid.Order:
             if orbmid.Order not in orbmids_dict:
                 orbmids_dict[orbmid.Order] = set()
             else:
-                orderDups.append(orbmid)
+                order_dup.add(orbmid)
             orbmids_dict[orbmid.Order].add(orbmid)
 
-    print("Orderdup", len(orderDups))
+    print("Orders count",len(orbmids_dict.keys()), len(orbmids))
 
+    # do match
+    matchCount = 0
+    dupCount = 0
+    nomatchCount = 0
+    noOrderCount = 0
+    new_attrs = [u'Equipment', u'NotesID']
 
-    result = []
-    order_with_bmid = []
     for sapdn in sapdns:
-        if sapdn.Order and not sapdn.Deletion_Indicator:
+        # init the keys from orbmid
+        for k in new_attrs:
+            sapdn.__dict__[k] = None
+        if sapdn.Order:
             if sapdn.Order in orbmids_dict:
-                orbmid_set = orbmids_dict[sapdn.Order]
-                if len(orbmid_set) == 1:
-                    orbmid = orbmid_set.pop()
+                orbm_set = orbmids_dict[sapdn.Order]
+                if len(orbm_set) == 1:
+                    orbmid = list(orbm_set)[0]
                     for k, v in orbmid.__dict__.items():
+                        if k in new_attrs:
+                            sapdn.__dict__[k] = v
+                    matchCount += 1
+                if len(orbm_set) > 1:
+                    dupCount += 1
+                if len(orbm_set) == 0:
+                    nomatchCount += 1
+        else:
+            noOrderCount += 1
+
+    print("Step1: Match rate", matchCount, len(sapdns),
+          "DupCount", dupCount, "Nomatch", nomatchCount,
+          "No Order", noOrderCount
+    )
+
+    fileWriter.outputObjectsToFile(sapdns,"Step_1_Sapdns_with_BMID",'output/dn_maker/')
+    return sapdns
+
+
+def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
+    """
+
+    :param bmstatus: all bm92
+    :param sapdns:
+    :return:
+    """
+
+    #build bm_dict
+    bsfe_dict = {}
+    bm_dict = {}
+    unique_dict = {}
+    for bm in bmstatus:
+        if bm.BAUMASSNAHME_ID:
+            if bm.BAUMASSNAHME_ID not in bm_dict:
+                bm_dict[bm.BAUMASSNAHME_ID] = set()
+            bm_dict[bm.BAUMASSNAHME_ID].add(bm)
+
+        if bm.BS_FE:
+            if bm.BS_FE not in bsfe_dict:
+                bsfe_dict[bm.BS_FE] = set()
+            bsfe_dict[bm.BS_FE].add(bm)
+
+        if bm.BAUMASSNAHME_ID and bm.BS_FE:
+            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE)
+            if unique not in unique_dict:
+                unique_dict[unique] = set()
+            unique_dict[unique].add(bm)
+
+    print("bm_dict", len(bm_dict),
+          "bsfe_dict", len(bsfe_dict),
+          "unique_dict", len(unique_dict)
+    )
+
+
+
+    uniqueMatch = []
+    uniqueMoreMatch = []
+    bsfeOneMatch = []
+    bsfeMoreMatch = []
+    for sapdn in sapdns:
+        # has unique
+        if sapdn.NotesID and sapdn.Equipment:
+            unique = (sapdn.NotesID, sapdn.Equipment)
+            # if unique is the in bmid
+            if unique in unique_dict:
+                bm_set = unique_dict[unique]
+                if len(bm_set) == 1:
+                    bm = list(bm_set)[0]
+                    for k, v in bm.__dict__.items():
                         sapdn.__dict__[k] = v
-                    result.append(sapdn)
-
+                    uniqueMatch.append(sapdn)
+                    continue
+                if len(bm_set) > 1:
+                    uniqueMoreMatch.append(sapdn)
             else:
-                order_with_bmid.append(sapdn)
+                if sapdn.Equipment in bsfe_dict:
+                    bm_set = bsfe_dict[sapdn.Equipment]
+                    if len(bm_set) == 1:
+                        bm = list(bm_set)[0]
+                        for k, v in bm.__dict__.items():
+                            sapdn.__dict__[k] = v
+                        bsfeOneMatch.append(sapdn)
+                        continue
+                    if len(bm_set) > 1:
+                        bsfeMoreMatch.append(sapdn)
 
-    print(len(order_with_bmid))
+    match = []
+    match.extend(uniqueMatch)
+    match.extend(bsfeOneMatch)
 
-    return orbmids_dict
+    nomatch = []
+    nomatch.extend(uniqueMoreMatch)
+    nomatch.extend(bsfeMoreMatch)
+
+    print("Step2 (BMID,BSFE) match",len(uniqueMatch),
+          "(BMID,BSFE) more match", len(uniqueMoreMatch),
+          "One BSFE match", len(bsfeOneMatch),
+          "More BSFE match", len(bsfeMoreMatch),
+          "Total match rate", len(match), len(bmstatus), len(sapdns),
+          "Total dismatch rate", len(nomatch), len(sapdns)
+    )
+
+    fileWriter.outputObjectsToFile(sapdns,"Step2_SAPDN_WITH_BMSTATUS92", 'output/dn_maker/')
+
+    return sapdns
 
 
+def new_step3_MixZteposIntoSapdns(ztepos=None, sapdns=None):
+    """
 
+    :param ztepos:
+    :param sapdns:
+    :return:
+    """
+    
 
 
 
