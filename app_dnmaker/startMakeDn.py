@@ -7,15 +7,22 @@ import pickle
 from collections import Counter
 import tools.fileWriter as fileWriter
 import copy
+import re
 
-def getAllDataAndWriteToFileDict():
-    """
+def getAllData():
+    sappos = recordReader.get1_AllSappoRecordInPath()
+    sappns = recordReader.get2_AllSapDeleiveryRecordInPath()
+    orbmids = recordReader.get3_AllOrderBmidInPath()
+    ztepos = poReader.goThroughPolistDirectory()
+    bmstatus = recordReader.get4_AllBMStatusRecordInPath()
 
-    :return:
-    """
-    pass
-
-
+    raw_dict = {}
+    raw_dict['sappos'] = sappos
+    raw_dict['sappns'] = sappns
+    raw_dict['orbmids'] = orbmids
+    
+    recordReader.storeRawData()
+    return (sappos, sappns, orbmids, ztepos, bmstatus)
 
 def step1_MixSapPOandZTEPO(sappos = None, ztepos= None):
     """
@@ -118,6 +125,9 @@ def step1_MixSapPOandZTEPO(sappos = None, ztepos= None):
     fileWriter.outputObjectsToFile(normalDisMatch, 'Step1_ZPO_SAP_Dismatch','output/error/')
     fileWriter.outputObjectsToFile(nosapMatch, 'Step1_ZPO_without_SAPPO','output/error/')
     recordReader.storeRawData(normalMatch, 'Step1_ZPO_SAP_Match','output/raw/')
+    normalMatch.extend(normalDisMatch)
+    fileWriter.outputObjectsToFile(normalMatch, 'Step1_mixed_ZPO','output/dn_maker/')
+
 
     return normalMatch
 
@@ -236,7 +246,7 @@ def step3_AddingBMIDandBsfeToSAPPO(sappos = None, orderbmids = None):
             order_list = list(orderbmid_dict[sappo.Order])
             if len(order_list) == 1:
                 orbmid = order_list.pop()
-                for k, v in orbmid:
+                for k, v in orbmid.__dict__.items():
                     sappo.__dict__[k] = v
                 result.append(sappo)
             else:
@@ -258,6 +268,68 @@ def step3_AddingBMIDandBsfeToSAPPO(sappos = None, orderbmids = None):
 
 
 
+def step4_AddBmstatusToSappos(sappos, bmstatus):
+    """
+
+    :param sappos:
+    :param bmstatus:
+    :return:
+    """
+    # 1. make a bmstatus dict
+    bm_dict = {}
+    sitebm_dict = {}
+    for bm in bmstatus:
+        if bm.BAUMASSNAHME_ID not in bm_dict:
+            bm_dict[bm.BAUMASSNAHME_ID] = set()
+        bm_dict[bm.BAUMASSNAHME_ID].add(bm)
+        if bm.BS_FE not in sitebm_dict:
+            sitebm_dict[bm.BS_FE] = set()
+        sitebm_dict[bm.BS_FE].add(bm)
+
+    result = []
+    nomatch = []
+    bmdupCount = 0
+    sitedupCount = 0
+    for sappo in sappos:
+        # check if this sppo has bsfe and bmid
+        if sappo.NotesID and sappo.NotesID in bm_dict:
+            bm_list = list(bm_dict[sappo.NotesID])
+            if len(bm_list) == 1:
+                bm = bm_list.pop()
+                for k ,v in bm.__dict__.items():
+                    sappo.__dict__[k] = v
+                result.append(sappo)
+            if len(bm_list) > 1:
+                bmdupCount += 1
+        # check if this sappo has bsfe but not bmid match
+        if sappo.Equipment and sappo.Equipment in sitebm_dict:
+            if re.match(".*(lte).*", sappo.ZTE_Project, re.IGNORECASE):
+                bm_list = list(sitebm_dict[sappo.Equipment])
+                if len(bm_list) == 1:
+                    bm = bm_list.pop()
+                    for k ,v in bm.__dict__.items():
+                        sappo.__dict__[k] = v
+                    result.append(sappo)
+                if len(bm_list) > 1:
+                    sitedupCount += 1
+        else:
+            nomatch.append(sappo)
+
+    dns = [sappo for sappo in result if sappo.IST92
+           and not sappo.ZTE_CM_No
+           and int(sappo.Still_to_be_delivered_qty) != 0]
+
+    fileWriter.outputObjectsToFile(result, 'Step4_SAPPO_with_BMSTATUS','output/dn_maker/')
+    fileWriter.outputObjectsToFile(nomatch, 'Step3_SAPPO_without_BMSTATUS','output/error/')
+    fileWriter.outputObjectsToFile(dns, 'Step4_DN','output/dn_maker/')
+
+    print("Step4 Match rate", len(result), len(sappos),
+          "Step4 No match", len(nomatch),
+          "Step4 BM Duplicate", bmdupCount,
+          "Step4 Site Dupicate", sitedupCount,
+          "Step4 DN count", len(dns)
+    )
+    return result
 
 
 
@@ -269,8 +341,10 @@ def step3_AddingBMIDandBsfeToSAPPO(sappos = None, orderbmids = None):
 
 
 
-if __name__ == '__main__':
-    getAllDataAndWriteToFileDict()
+
+
+
+
 
 
 

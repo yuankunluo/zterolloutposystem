@@ -96,7 +96,7 @@ def get1_AllSappoRecordInPath(path = 'input/po_ztematerial_to_sappo_zztepolist/'
         u'Reference_PO_Number',
     ]
     sapopo_list = []
-    rowObjs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
+    rowObjs = fileReader.getAllRowObjectInPath(path)
 
     missCount = 0
     # cover rows as bmboject
@@ -243,12 +243,14 @@ def get4_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         rowObjList.extend(rowObjs)
 
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING']
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING','NBNEU']
 
     bm_dict = {}
     conflict_bmstatus = []
     result = []
 
+
+    updateCount = 0
     print("Enter covering Rowobejec into BMStatusObject")
     for rowObj in rowObjList:
         bmObj = BMStatusRecord()
@@ -257,15 +259,27 @@ def get4_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         for k, v in rowObj.__dict__.items():
             if k in attris:
                 bmObj.__dict__[k] = fileReader.clearUnicode(v)
+        # get the tupe as key
         bm_tupe = (bmObj.BAUMASSNAHME_ID, bmObj.BS_FE)
+        # test if this bm tupe already in dict
         if bm_tupe not in bm_dict:
-            bm_dict[bm_tupe] = bmObj
-            result.append(bmObj)
+            # not in bmdict, then add into it
+            bm_dict[bm_tupe] = set()
+            bm_dict[bm_tupe].add(bmObj)
         else:
-            oldbm = bm_dict[bm_tupe]
-            if oldbm.IST92 != bmObj.IST92:
-                conflict_bmstatus.extend([bmObj, oldbm])
+            oldbm = bm_dict[bm_tupe].pop()
+            # update only the IST is 92
+            if bmObj.IST92 and not oldbm.IST92:
+                bm_dict[bm_tupe].add(bmObj)
+                updateCount += 1
+            else:
+                bm_dict[bm_tupe].add(oldbm)
 
+    for k, bmset in bm_dict.items():
+        result.extend(list(bmset))
+
+
+    print("Update Count,", updateCount)
     if output:
         fileWriter.outputObjectsToFile(result,'RAW_4_BMSTATUS_all','output/dn_maker/')
         if len(conflict_bmstatus) != 0:
@@ -297,6 +311,7 @@ def __contains(small, big):
 def loadRawData(path):
     fileDict = None
     with open(path, 'rb') as f:
+
         fileDict = pickle.load(f)
     print("Load %d records"%(len(fileDict)))
     return fileDict
