@@ -40,7 +40,10 @@ class SAPReferencePORecord(Record):
 class OrderBmidRecord(Record):
 
     def __eq__(self, other):
-        if self.__dict__ == other.__dict__:
+        if (self.Equipment == other.Equipment
+            and self.NotesID == other.NotesID
+            and self.Order == other.Order
+        ):
             return True
         else:
             return False
@@ -96,7 +99,7 @@ def get1_AllSappoRecordInPath(path = 'input/po_ztematerial_to_sappo_zztepolist/'
         u'Reference_PO_Number',
     ]
     sapopo_list = []
-    rowObjs = fileReader.getAllRowObjectInPath(path)
+    rowObjs = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
 
     missCount = 0
     # cover rows as bmboject
@@ -187,31 +190,28 @@ def get3_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output = True
     ]
 
     rows = fileReader.getAllRowObjectInPath(path)
-    orbmids = []
+    orbmids = set()
     missing = []
     missingCount = 0
     duplicatCount = 0
     for drRow in rows:
         order = OrderBmidRecord()
         order = initWithAttrsToNone(order, attris)
-        order.Order_Source = drRow.Source
+        # order.Order_Source = drRow.Source
         for k, v in drRow.__dict__.items():
             if k in attris:
                 order.__dict__[k] = fileReader.clearUnicode(v)
         if order.Equipment and order.Order and order.NotesID:
-            if order not in orbmids:
-                orbmids.append(order)
-            else:
-                duplicatCount += 1
+            orbmids.add(order)
         else:
             missing.append(order)
             missingCount += 1
 
     if output:
-        fileWriter.outputObjectsToFile(orbmids,'Raw_3_SAP_OrderBMID','output/dn_maker/')
+        fileWriter.outputObjectsToFile(list(orbmids),'Raw_3_SAP_OrderBMID','output/dn_maker/')
         if len(missing) != 0 :
             fileWriter.outputObjectsToFile(missing,'Raw_3_SAP_OrderBMID_Missing','output/error/')
-        storeRawData(orbmids,'Raw_3_SAP_OrderBMID')
+        storeRawData(list(orbmids),'Raw_3_SAP_OrderBMID')
     print('Order Bmid Rate: ', len(orbmids), len(rows),
           'Missing: ', missingCount,
           'Duplicat', duplicatCount,
@@ -229,11 +229,12 @@ def get4_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
     bm_sheets = []
     #get all sheets in path
     sheets = fileReader.getAllSheetsInPath(path, recursive=True)
-    test_header = [u'BAUMASSNAHME_ID', u'BS_FE', u'GEMEINDE_NAME',u'IST92', u'PLZ',u'STRASSE']
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING','NBNEU']
     # test if this is a good bm status list
     for sheet in sheets:
         header = fileReader.getHeaderFromSheet(sheet)
-        if __contains(test_header, header):
+        if __contains(attris, header):
             bm_sheets.append(sheet)
         else:
             print("Error: No BM_STATUS Header", sheet.name, sheet.filename)
@@ -241,9 +242,6 @@ def get4_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
     for bm_sheet in bm_sheets:
         rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
         rowObjList.extend(rowObjs)
-
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING','NBNEU']
 
     bm_dict = {}
     conflict_bmstatus = []

@@ -46,6 +46,66 @@ def doProductDN(raw_dict):
     return sappos
 
 
+
+
+def step1_AddOrbmidsToSapdns(orbmids, sapdns):
+    """
+
+    :param orbmids:
+    :param sapdns:
+    :return:
+    """
+    # build order-orbmid dict
+    orbmids_dict = {}
+    orderDups = []
+    for orbmid in orbmids:
+        if orbmid.Order:
+            if orbmid.Order not in orbmids_dict:
+                orbmids_dict[orbmid.Order] = set()
+            else:
+                orderDups.append(orbmid)
+            orbmids_dict[orbmid.Order].add(orbmid)
+
+    print("Orderdup", len(orderDups))
+
+
+    result = []
+    order_with_bmid = []
+    for sapdn in sapdns:
+        if sapdn.Order and not sapdn.Deletion_Indicator:
+            if sapdn.Order in orbmids_dict:
+                orbmid_set = orbmids_dict[sapdn.Order]
+                if len(orbmid_set) == 1:
+                    orbmid = orbmid_set.pop()
+                    for k, v in orbmid.__dict__.items():
+                        sapdn.__dict__[k] = v
+                    result.append(sapdn)
+
+            else:
+                order_with_bmid.append(sapdn)
+
+    print(len(order_with_bmid))
+
+    return orbmids_dict
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# --------------- old
 def step1_MixSapPOandZTEPO(sappos = None, ztepos= None):
     """
 

@@ -57,7 +57,7 @@ Out[54]:
 {u'Equipment': u'16530181',
  u'NotesID': u'201024624',
  u'Order': u'50053329',
- 'Order_Source': 'input/po_oder_bmid/oder_bmid_20141112.xlsx'}
+}
 
 bmstatus[0].__dict__
 Out[55]: 
