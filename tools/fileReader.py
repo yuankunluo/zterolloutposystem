@@ -180,24 +180,30 @@ def findHiddenRowlistFromSheet(origin_sheet):
     :return: a list of integers, indicates the hidden row index
     """
 
-    reg_xls = '.*(xls$)'
-    reg_xlsx = '.*(xlsx$)'
+    reg_xls = '.*(xls)$'
+    reg_xlsx = '.*(xlsx)$'
     hiddenlist = []
 
-    if re.match(reg_xls, origin_sheet.source):
-        xbook = open_workbook(origin_sheet.source, formatting_info=True)
-        sheet = xbook.sheet_by_index(origin_sheet.index)
-        rowinfokeys = sheet.rowinfo_map.keys()
-        for rowx in rowinfokeys:
-            rowinfo = sheet.rowinfo_map[rowx]
-            if rowinfo.hidden == 1:
-                hiddenlist.append(rowx)
-    if re.match(reg_xlsx, origin_sheet.source):
-        xbook = xlr.Workbook(origin_sheet.source)
-        xsheet = xbook[origin_sheet.index + 1] # using id to get sheet
-        xhidden_list = xsheet.getHiddenRowIndex()
-        if len(xhidden_list) > 0:
-            hiddenlist = xhidden_list
+    if re.match(reg_xls, origin_sheet.source, re.IGNORECASE):
+        try:
+            xbook = open_workbook(origin_sheet.source, formatting_info=True)
+            sheet = xbook.sheet_by_index(origin_sheet.index)
+            rowinfokeys = sheet.rowinfo_map.keys()
+            for rowx in rowinfokeys:
+                rowinfo = sheet.rowinfo_map[rowx]
+                if rowinfo.hidden == 1:
+                    hiddenlist.append(rowx)
+        except Exception:
+            print("Error Reading xls file", origin_sheet.source)
+    if re.match(reg_xlsx, origin_sheet.source, re.IGNORECASE):
+        try:
+            xbook = xlr.Workbook(origin_sheet.source)
+            xsheet = xbook[origin_sheet.index + 1] # using id to get sheet
+            xhidden_list = xsheet.getHiddenRowIndex()
+            if len(xhidden_list) > 0:
+                hiddenlist = xhidden_list
+        except Exception:
+            print("Error Reading xlsx file", origin_sheet.source)
     if len(hiddenlist) != 0:
         print("Find %d hiddenlist in sheet %s : %s"%(len(hiddenlist), origin_sheet.source, origin_sheet.name))
     return hiddenlist

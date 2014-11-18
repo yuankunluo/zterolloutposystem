@@ -58,12 +58,15 @@ def goThroughDirectory(path , weekly = False, yearNr = None,
     sheets = __getRidoffEmptySheet(sheets)
 
     for s in sheets:
-        dng = DNGE(s.filename)
-        head = readDngeHeader(s)
-        contents = readDngeContent(s)
-        dng.header = head
-        dng.contents = contents
-        dngs.append(dng)
+        try:
+            dng = DNGE(s.filename)
+            head = readDngeHeader(s)
+            contents = readDngeContent(s)
+            dng.header = head
+            dng.contents = contents
+            dngs.append(dng)
+        except Exception:
+            print("Error reading Sheet", s.filename, s.sheetname)
 
 
 
