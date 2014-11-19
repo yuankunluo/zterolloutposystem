@@ -302,7 +302,7 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
 
     sap_refmq_dict = {}
     sap_pmq_dict = {}
-    sap_bsfe_dict = {}
+    sap_bs_m_dict = {}
     count = 0
     for sapdn in sapdns:
         if (sapdn.SAP_Reference_PO_Number and sapdn.Material and sapdn.Order_Quantity):
@@ -322,10 +322,11 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
                 sap_pmq_dict[unique] = set()
             sap_pmq_dict[unique].add(sapdn)
             count += 1
-        if sapdn.Equipment:
-            if sapdn.Equipment not in sap_bsfe_dict:
-                sap_bsfe_dict[sapdn.Equipment] = set()
-            sap_bsfe_dict[sapdn.Equipment].add(sapdn)
+        if sapdn.Equipment and sapdn.Material:
+            unique = (sapdn.Equipment, sapdn.Material)
+            if unique not in sap_bs_m_dict:
+                sap_bs_m_dict[unique] = set()
+            sap_bs_m_dict[unique].add(sapdn)
 
     print("Refm_dict", len(sap_refmq_dict), "pm_dict", len(sap_pmq_dict), len(sapdns),
           "Diff", len(sapdns)-count, len(sapdns)-len(sap_refmq_dict)-len(sap_pmq_dict)
@@ -393,7 +394,8 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
                 match.add(sapdn)
             else:
                 if len(spo_set) < len(zposet):
-                    # sap has less po, that means wrong zpo record
+                    #
+                    #  sap has less po, that means wrong zpo record
                     more_zpo = more_zpo.union(zposet)
                 if len(spo_set) > len(zposet) and len(spo_set)>1 and len(zposet)>0:
                     # sap has more po than zpolist
@@ -416,23 +418,18 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
             # if this ztepo has not match with sapdn
             # we check it with the sapdn_bsfe-dict
             # using the Only one bsfe to match
-            if len(zposet) == 1:
-                zpo = list(zposet)[0]
-                if zpo.ZTE_Site_ID:
-                    if zpo.ZTE_Site_ID in sap_bsfe_dict:
-                        sapdn_set = sap_bsfe_dict[zpo.ZTE_Site_ID]
-                        if len(sapdn_set) == 1:
-                            sapdn = list(sapdn_set)[0]
-                            if sapdn.Material == zpo.ZTE_Material:
-                                # has only one site id
-                                for k, v in zpo.__dict__.items():
-                                    sapdn.__dict__[k] = v
-                                match.add(sapdn)
-                                onlyBsfeMatch.add(sapdn)
-            else:
-                zpo_nomatch = zpo_nomatch.union(zposet)
-
-
+            for zpo in list(zposet):
+                if zpo.ZTE_Site_ID and zpo.ZTE_Material:
+                    unique = (zpo.ZTE_Site_ID, zpo.ZTE_Material)
+                    if unique in sap_bs_m_dict:
+                        sap_set = sap_bs_m_dict[unique]
+                        for sapdn in list(sap_set):
+                            for k,v in zpo.__dict__.items():
+                                sapdn.__dict__[k] = v
+                            match.add(sapdn)
+                            onlyBsfeMatch.add(sapdn)
+                else:
+                    zpo_nomatch.add(zpo)
 
     print("One-unique match", len(oneuniquematch), len(sapdns), len(ztepos),
           "MoreSAPPO-match", len(morematch),
@@ -448,6 +445,37 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
 
     return match
 
+
+
+def new_step5_outputDNperProjectFromSapdns(sapdns):
+    sapdns = list(sapdns)
+    sapdn_dict = {}
+    dn_list = []
+    dnCount = 0
+    for sapdn in sapdns:
+        if sapdn.ZTE_Project:
+            if sapdn.IST92:
+                if not sapdn.Deletion_Indicator:
+                    if int(sapdn.Still_to_be_delivered_qty) != 0:
+                        if not sapdn.ZTE_CM_No:
+                            if sapdn.ZTE_Project not in sapdn_dict:
+                                sapdn_dict[sapdn.ZTE_Project] = set()
+                            sapdn_dict[sapdn.ZTE_Project].add(sapdn)
+                            dn_list.append(sapdn)
+
+                            dnCount += 1
+    print("DN Count", dnCount)
+    # for p, sapdn_set in sapdn_dict.items():
+    #     fname = "DN_"+fileWriter.getNowAsString("%Y%m%d") + "_"+ p + "_#_" +unicode(len(sapdn_set))
+    #     re.sub('\s','',fname)
+    #     fileWriter.outputObjectsToFile(list(sapdn_set),
+    #                                    fname,
+    #                                    "output/dn_maker/"
+    #                                    )
+    fname = "DN_"+fileWriter.getNowAsString("%Y%m%d") + "_"+"_All_#_" +unicode(len(dn_list))
+    fileWriter.outputObjectsToFile(dn_list, fname, "output/dn_maker/")
+
+    return sapdn_dict
 
 
 
