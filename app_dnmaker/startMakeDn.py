@@ -1,6 +1,5 @@
 __author__ = 'yuluo'
 
-import app_po.polistReader as poReader
 import recordReader as recordReader
 import datetime
 import pickle
@@ -13,12 +12,12 @@ def getAllData():
     sappos = recordReader.get_AllSappoInPath()
     sappns = recordReader.get_AllSapdnInPath()
     orbmids = recordReader.get_AllOrderBmidInPath()
-    ztepos = poReader.goThroughPolistDirectory()
+    ztepos = recordReader.get_ALLZteposInPath()
     bmstatus = recordReader.get_AllBMStatusRecordInPath()
 
     raw_dict = {}
     raw_dict['sappos'] = sappos
-    raw_dict['sappns'] = sappns
+    raw_dict['sapdns'] = sappns
     raw_dict['orbmids'] = orbmids
     raw_dict['ztepos'] = ztepos
     raw_dict['bmstatus'] = bmstatus
@@ -33,17 +32,17 @@ def doProductDN(raw_dict):
     :return:
     """
     sappos = raw_dict['sappos']
-    sappns =raw_dict['sappns']
+    sapdns =raw_dict['sapdns']
     orbmids = raw_dict['orbmids']
     ztepos = raw_dict['ztepos']
     bmstatus = raw_dict['bmstatus']
 
-    sappos = step1_MixSapPOandZTEPO(sappos, ztepos)
-    sappos = step2_AddingSAPDNtoSappo(sappos, sappns)
-    sappos = step3_AddingBMIDandBsfeToSAPPO(sappos, orbmids)
-    sappos = step4_AddBmstatusToSappos(sappos, bmstatus)
+    sapdns = new_step1_AddOrbmidsToSapdns(orbmids, sapdns)
+    sapdns = new_step2_addBmstatusToSapdns(bmstatus, sapdns)
+    sapdns = new_step3_AddSapposToSapdns(sappos, sapdns)
+    sapdns = new_step4_MixZteposIntoSapdns(ztepos, sapdns)
 
-    return sappos
+    return sapdns
 
 
 
@@ -192,18 +191,247 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
     return sapdns
 
 
-def new_step3_MixZteposIntoSapdns(ztepos=None, sapdns=None):
+def new_step3_AddSapposToSapdns(sappos= None, sapdns = None):
+    """
+
+    :param sappos:
+    :param sapdns:
+    :return:
+    """
+    d = {u'SAP_Doc_Date': u'41800',
+     u'SAP_Item_of_PO': u'10',
+     u'SAP_Material': u'50016774',
+     u'SAP_Material_Description': u'ZTE. UMTS ZN000078  MCO BS8900B 3 RSU82,',
+     u'SAP_PO_Quantity': u'1',
+     u'SAP_PurchNo': u'32010557',
+     u'SAP_Reference_PO_Number': u'43098103'
+    }
+
+
+    pmi_dict = {}
+    for sappo in sappos:
+        if (sappo.SAP_PurchNo
+            and sappo.SAP_Material
+            and sappo.SAP_Item_of_PO
+        ):
+            unique_pmi = (sappo.SAP_PurchNo , sappo.SAP_Material , sappo.SAP_Item_of_PO)
+            if unique_pmi not in pmi_dict:
+                pmi_dict[unique_pmi] = set()
+            pmi_dict[unique_pmi].add(sappo)
+
+    print("SAPPO PMIG unique dict",len(pmi_dict), len(sappos))
+
+
+    match = []
+    dismatch = []
+    for sapdn in sapdns:
+
+        for k, v in sappos[0].__dict__.items():
+            if k not in sapdn.__dict__:
+                sapdn.__dict__[k] = None
+
+        if (sapdn.Purchasing_Document
+            and sapdn.Material
+            and sapdn.Item
+        ):
+            unique_pmi = (sapdn.Purchasing_Document,sapdn.Material,sapdn.Item)
+            if unique_pmi in pmi_dict:
+                sappo_set = pmi_dict[unique_pmi]
+                if len(sappo_set) == 1:
+                    sappo = list(sappo_set)[0]
+                    for k, v in sappo.__dict__.items():
+                        sapdn.__dict__[k] = v
+                    match.append(sapdn)
+            else:
+                dismatch.append(sapdn)
+
+    print("Step3 SAPDN SAPPO match rate", len(match), len(sapdns),
+          "Dismath rate", len(dismatch), len(sapdns),
+          "Diff", len(sapdns) - len(dismatch) - len(match)
+    )
+
+    fileWriter.outputObjectsToFile(sapdns,"Step3_SAPDN_With_SAPPO",'output/dn_maker/')
+    fileWriter.outputObjectsToFile(dismatch,"Step3_SAPDN_Without_SAPPO",'output/error/')
+
+    return sapdns
+
+
+
+def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
     """
 
     :param ztepos:
     :param sapdns:
     :return:
     """
-    
+
+    d_sappo = {u'SAP_Doc_Date': u'41800',
+     u'SAP_Item_of_PO': u'10',
+     u'SAP_Material': u'50016774',
+     u'SAP_Material_Description': u'ZTE. UMTS ZN000078  MCO BS8900B 3 RSU82,',
+     u'SAP_PO_Quantity': u'1',
+     u'SAP_PurchNo': u'32010557',
+     u'SAP_Reference_PO_Number': u'43098103'}
+
+    d_sapdn = {u'Deletion_Indicator': u'L',
+     u'Document_Date': u'40638',
+     u'Document_item': u'0',
+     u'Goods_recipient': None,
+     u'Item': u'10',
+     u'Material': u'50014172',
+     u'Order': u'50083852',
+     u'Order_Quantity': u'1',
+     u'Order_Unit': u'ST',
+     u'Purchasing_Document': u'32003539',
+     u'Purchasing_Info_Rec': u'5300116271',
+     u'SAP_Doc_Date': u'40638',
+     u'SAP_Item_of_PO': u'10',
+     u'SAP_Material': u'50014172',
+     u'SAP_Material_Description': u'ZTE DBS NodeB BS8700 DC, ZN000001',
+     u'SAP_PO_Quantity': u'1',
+     u'SAP_PurchNo': u'32003539',
+     u'SAP_Reference_PO_Number': None,
+     u'Short_Text': u'ZTE DBS NodeB BS8700 DC, ZN000001',
+     u'Still_to_be_delivered_qty': u'0'}
+
+
+
+    sap_refmq_dict = {}
+    sap_pmq_dict = {}
+    count = 0
+    for sapdn in sapdns:
+        if (sapdn.SAP_Reference_PO_Number and sapdn.Material and sapdn.Order_Quantity):
+            unique = (sapdn.SAP_Reference_PO_Number,sapdn.Material,sapdn.Order_Quantity)
+            if unique not in sap_refmq_dict:
+                sap_refmq_dict[unique] = set()
+            sap_refmq_dict[unique].add(sapdn)
+            count += 1
+
+        if (not sapdn.SAP_Reference_PO_Number
+            and sapdn.Purchasing_Document
+            and sapdn.Material
+            and sapdn.Order_Quantity
+        ):
+            unique = (sapdn.Purchasing_Document, sapdn.Material,sapdn.Order_Quantity)
+            if unique not in sap_pmq_dict:
+                sap_pmq_dict[unique] = set()
+            sap_pmq_dict[unique].add(sapdn)
+            count += 1
+
+    print("Refm_dict", len(sap_refmq_dict), "pm_dict", len(sap_pmq_dict), len(sapdns),
+          "Diff", len(sapdns)-count, len(sapdns)-len(sap_refmq_dict)-len(sap_pmq_dict)
+    )
 
 
 
 
+    zpo_d = {'Hidden': False,
+     'ZTE_CM_Date': u'40638',
+     'ZTE_CM_No': u'5101009596',
+     'ZTE_Contract_No': u'S4DE2009121802UMTP1',
+     'ZTE_Delivery_Date': u'40410',
+     'ZTE_Item_Code': None,
+     'ZTE_Material': u'50014172',
+     'ZTE_Origin_Mcode': u'50014172',
+     'ZTE_Origin_Qty': u'1',
+     'ZTE_PO_Amount': u'2000',
+     'ZTE_PO_Date': u'40371',
+     'ZTE_PO_Nr': u'32001158',
+     'ZTE_Product_Description': u'B8200 (2 Bpc) + 3XR8840 + 3XOLP(DC) + cable set for B8200/RRU/OLP',
+     'ZTE_Project': u'UMTS New',
+     'ZTE_Qty': u'1',
+     'ZTE_Remark': None,
+     'ZTE_Site_ID': u'18534033'}
+
+    # build ztepo dict
+    zpo_pmr_dict = {}
+
+    for zpo in ztepos:
+        if (zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty):
+            unique = (zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
+            if unique not in zpo_pmr_dict:
+                zpo_pmr_dict[unique] = set()
+            zpo_pmr_dict[unique].add(zpo)
+
+    # do match
+
+
+    match = set()
+    zpo_nomatch = set()
+    morematch = set()
+    oneuniquematch  = set()
+    more_zpo = set()
+    more_sapdn = set()
+    for unique, zposet in zpo_pmr_dict.items():
+        # it's a normal po
+        if unique in sap_pmq_dict:
+            spo_set = sap_pmq_dict[unique]
+        elif unique in sap_refmq_dict and unique not in sap_pmq_dict :
+            spo_set = sap_refmq_dict[unique]
+        else:
+            spo_set = None
+
+        # if this unique has sappo
+        if spo_set and zposet:
+            if len(spo_set) == len(zposet) == 1:
+                # one to one match
+                sapdn = list(spo_set)[0]
+                zpo = list(zposet)[0]
+                for k, v in zpo.__dict__.items():
+                    sapdn.__dict__[k] = v
+                oneuniquematch.add(sapdn)
+                match.add(sapdn)
+            else:
+                if len(spo_set) < len(zposet):
+                    # sap has less po, that means wrong zpo record
+                    more_zpo = more_zpo.union(zposet)
+                if len(spo_set) > len(zposet) and len(spo_set)>1 and len(zposet)>0:
+                    # sap has more po than zpolist
+                    # it means has more position
+                    spo_l = list(spo_set)
+                    zpo_l = list(zposet)
+                    zpo = zpo_l[0]
+                    for i in range(len(spo_l)):
+                        sapdn = spo_l[i]
+                        try:
+                            new_zpo = zpo_l[i]
+                        except Exception:
+                            new_zpo = zpo
+                        for k, v in new_zpo.__dict__.items():
+                            sapdn.__dict__[k] = v
+                        morematch.add(sapdn)
+                        match.add(sapdn)
+
+        else:
+            zpo_nomatch = zpo_nomatch.union(zposet)
+
+    dn_set = set()
+    for sapdn in match:
+        if (sapdn.Still_to_be_delivered_qty
+            and sapdn.Deletion_Indicator
+            and sapdn.ZTE_CM_No
+            and sapdn.IST92):
+            if (int(sapdn.Still_to_be_delivered_qty) != 0
+                and not sapdn.Deletion_Indicator
+                and not sapdn.ZTE_CM_No
+                and sapdn.IST92
+            ):
+                dn_set.add(sapdn)
+
+    print("One-unique match", len(oneuniquematch), len(sapdns), len(ztepos),
+          "MoreSAPPO-match", len(morematch),
+          "Total Match", len(match), len(sapdns),
+          "DN", len(dn_set)
+    )
+
+
+    fileWriter.outputObjectsToFile(zpo_nomatch,"Step_4_ZPO_nomatch","output/error/")
+    fileWriter.outputObjectsToFile(list(more_sapdn),"Step_4_More_SAPDN","output/error/")
+    fileWriter.outputObjectsToFile(list(more_zpo),"Step_4_More_ZTEPO","output/error/")
+    fileWriter.outputObjectsToFile(list(match),"Step_4_Matach_taotal","output/dn_maker/")
+    fileWriter.outputObjectsToFile(list(dn_set),"Step_4_DN","output/dn_maker/")
+
+    return match
 
 
 

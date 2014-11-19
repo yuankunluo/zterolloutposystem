@@ -1,6 +1,7 @@
 __author__ = 'yuluo'
 import tools.fileReader as fileReader
 import tools.fileWriter as fileWriter
+import app_po.polistReader as polistReader
 import pickle
 import datetime
 import os
@@ -58,6 +59,36 @@ class BMStatus2(Record):
     pass
 
 
+def get_ALLZteposInPath():
+    """
+
+    :return:
+    """
+    polist = polistReader.goThroughPolistDirectory()
+    zpo_att = ['ZTE_Qty','ZTE_Origin_Mcode','ZTE_PO_Nr',
+               'ZTE_Contract_No','ZTE_Material','ZTE_CM_Date','ZTE_PO_Date',
+               'ZTE_Item_Code','ZTE_Project','ZTE_Origin_Qty',
+               'ZTE_Site_ID','ZTE_Delivery_Date', 'ZTE_Product_Description',
+               'ZTE_Remark','ZTE_CM_No','ZTE_PO_Amount','rowindex']
+
+    po_set = set()
+
+    for zpo in polist:
+        zpoObj = ZTEPoRecord()
+        zpoObj = initWithAttrsToNone(zpoObj, zpo_att)
+        for k, v in zpo.__dict__.items():
+            if k in zpo_att:
+                zpoObj.__dict__[k] = fileReader.clearUnicode(v)
+        po_set.add(zpoObj)
+
+    print("ZPO non rate", len(po_set), len(polist))
+
+    storeRawData(list(po_set), "Raw_ZTEPO","output/raw/")
+    fileWriter.outputObjectsToFile(list(po_set),'Raw_ZTEPO','output/dn_maker/')
+    return list(po_set)
+
+
+
 def get_AllSappoInPath(path = 'input/po_ztematerial_to_sappo_zztepolist/' , output=True):
     """
     Using material code to ge all sappo information
@@ -82,11 +113,11 @@ def get_AllSappoInPath(path = 'input/po_ztematerial_to_sappo_zztepolist/' , outp
     # cover rows as bmboject
     for row in rowObjs:
         sappo = SAPPORecord()
-        sappo = initWithAttrsToNone(sappo, attrs)
+        sappo = initWithAttrsToNone(sappo, ['SAP_'+a for a in attrs])
         for k, v in row.__dict__.items():
             if k in attrs:
-                sappo.__dict__[k] = fileReader.clearUnicode(v)
-        if sappo.PurchNo and sappo.Material and sappo.Item_of_PO:
+                sappo.__dict__['SAP_'+k] = fileReader.clearUnicode(v)
+        if sappo.SAP_PurchNo and sappo.SAP_Material and sappo.SAP_Item_of_PO:
             sapopo_set.add(sappo)
         else:
             missing_set.add(sappo)

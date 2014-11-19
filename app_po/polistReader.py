@@ -4,7 +4,6 @@ import datetime
 import os
 import re
 from time import gmtime, strftime
-import app_dnmaker.recordReader as recordReader
 
 import logging
 import copy
@@ -59,7 +58,6 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
         fileWriter.outputObjectsToFile(poObjes,
                                        outputfile + fileWriter.getNowAsString(),
                                        outputpath)
-        recordReader.storeRawData(poObjes,'Raw_ZTEPOLIST')
         if len(wrongPos) != 0:
             fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
         if len(hidden)!= 0:
@@ -103,6 +101,7 @@ def __readPoRecordFromRowobje(rowObj):
      'ZTE_CM_No':'CM_No$',
      'ZTE_CM_Date':'CM_Date$$',
      'Hidden':'Hidden$',
+     'rowindex':'rowindex'
     }
 
     poObj = ZTEPORecord()
