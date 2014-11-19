@@ -302,6 +302,7 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
 
     sap_refmq_dict = {}
     sap_pmq_dict = {}
+    sap_bsfe_dict = {}
     count = 0
     for sapdn in sapdns:
         if (sapdn.SAP_Reference_PO_Number and sapdn.Material and sapdn.Order_Quantity):
@@ -321,6 +322,10 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
                 sap_pmq_dict[unique] = set()
             sap_pmq_dict[unique].add(sapdn)
             count += 1
+        if sapdn.Equipment:
+            if sapdn.Equipment not in sap_bsfe_dict:
+                sap_bsfe_dict[sapdn.Equipment] = set()
+            sap_bsfe_dict[sapdn.Equipment].add(sapdn)
 
     print("Refm_dict", len(sap_refmq_dict), "pm_dict", len(sap_pmq_dict), len(sapdns),
           "Diff", len(sapdns)-count, len(sapdns)-len(sap_refmq_dict)-len(sap_pmq_dict)
@@ -366,6 +371,7 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
     oneuniquematch  = set()
     more_zpo = set()
     more_sapdn = set()
+    onlyBsfeMatch = set()
     for unique, zposet in zpo_pmr_dict.items():
         # it's a normal po
         if unique in sap_pmq_dict:
@@ -407,20 +413,38 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
                         match.add(sapdn)
 
         else:
-            zpo_nomatch = zpo_nomatch.union(zposet)
+            # if this ztepo has not match with sapdn
+            # we check it with the sapdn_bsfe-dict
+            # using the Only one bsfe to match
+            if len(zposet) == 1:
+                zpo = list(zposet)[0]
+                if zpo.ZTE_Site_ID:
+                    if zpo.ZTE_Site_ID in sap_bsfe_dict:
+                        sapdn_set = sap_bsfe_dict[zpo.ZTE_Site_ID]
+                        if len(sapdn_set) == 1:
+                            sapdn = list(sapdn_set)[0]
+                            if sapdn.Material == zpo.ZTE_Material:
+                                # has only one site id
+                                for k, v in zpo.__dict__.items():
+                                    sapdn.__dict__[k] = v
+                                match.add(sapdn)
+                                onlyBsfeMatch.add(sapdn)
+            else:
+                zpo_nomatch = zpo_nomatch.union(zposet)
 
 
 
     print("One-unique match", len(oneuniquematch), len(sapdns), len(ztepos),
           "MoreSAPPO-match", len(morematch),
           "Total Match", len(match), len(sapdns),
+          "Only BSFE match", len(onlyBsfeMatch), len(sapdns)
     )
 
 
-    fileWriter.outputObjectsToFile(zpo_nomatch,"Step_4_ZPO_nomatch","output/error/")
-    fileWriter.outputObjectsToFile(list(more_sapdn),"Step_4_More_SAPDN","output/error/")
-    fileWriter.outputObjectsToFile(list(more_zpo),"Step_4_More_ZTEPO","output/error/")
-    fileWriter.outputObjectsToFile(list(match),"Step_4_Matach_taotal","output/dn_maker/")
+    fileWriter.outputObjectsToFile(zpo_nomatch,"Step4_ZPO_nomatch","output/error/")
+    fileWriter.outputObjectsToFile(list(more_sapdn),"Step4_More_SAPDN","output/error/")
+    fileWriter.outputObjectsToFile(list(more_zpo),"Step4_More_ZTEPO","output/error/")
+    fileWriter.outputObjectsToFile(list(match),"Step4_Matach_taotal","output/dn_maker/")
 
     return match
 

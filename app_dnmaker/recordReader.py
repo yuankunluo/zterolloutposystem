@@ -20,8 +20,9 @@ class Record(object):
     def __hash__(self):
         value = 0
         for k, v in self.__dict__.items():
-            if v:
-                value += hash(v)
+            if not re.match(".*(source).*", k, re.IGNORECASE):
+                if v:
+                    value += hash(v)
         return value
 
     def __cmp__(self, other):
