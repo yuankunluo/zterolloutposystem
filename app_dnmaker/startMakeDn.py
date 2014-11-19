@@ -144,6 +144,10 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
     bsfeOneMatch = []
     bsfeMoreMatch = []
     for sapdn in sapdns:
+        bm0 = bmstatus[0]
+        for k, v in bm0.__dict__.items():
+            if k not in sapdn.__dict__:
+                sapdn.__dict__[k] = None
         # has unique
         if sapdn.NotesID and sapdn.Equipment:
             unique = (sapdn.NotesID, sapdn.Equipment)
@@ -405,23 +409,11 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
         else:
             zpo_nomatch = zpo_nomatch.union(zposet)
 
-    dn_set = set()
-    for sapdn in match:
-        if (sapdn.Still_to_be_delivered_qty
-            and sapdn.Deletion_Indicator
-            and sapdn.ZTE_CM_No
-            and sapdn.IST92):
-            if (int(sapdn.Still_to_be_delivered_qty) != 0
-                and not sapdn.Deletion_Indicator
-                and not sapdn.ZTE_CM_No
-                and sapdn.IST92
-            ):
-                dn_set.add(sapdn)
+
 
     print("One-unique match", len(oneuniquematch), len(sapdns), len(ztepos),
           "MoreSAPPO-match", len(morematch),
           "Total Match", len(match), len(sapdns),
-          "DN", len(dn_set)
     )
 
 
@@ -429,7 +421,6 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
     fileWriter.outputObjectsToFile(list(more_sapdn),"Step_4_More_SAPDN","output/error/")
     fileWriter.outputObjectsToFile(list(more_zpo),"Step_4_More_ZTEPO","output/error/")
     fileWriter.outputObjectsToFile(list(match),"Step_4_Matach_taotal","output/dn_maker/")
-    fileWriter.outputObjectsToFile(list(dn_set),"Step_4_DN","output/dn_maker/")
 
     return match
 
