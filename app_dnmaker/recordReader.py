@@ -60,6 +60,11 @@ class BMStatus2(Record):
     pass
 
 
+class PurchaseRequisitionRecord(Record):
+    pass
+
+
+
 def get_ALLZteposInPath():
     """
 
@@ -151,12 +156,10 @@ def get_AllSapdnInPath(path='input/po_vendor_to_sapdn_me2l/', output=True):
     attrs = [
         u'Deletion_Indicator',
         u'Document_Date',
-        u'Document_item',
         u'Goods_recipient',
         u'Material',
         u'Order',
         u'Order_Quantity',
-        u'Order_Unit',
         u'Purchasing_Document',
         u'Purchasing_Info_Rec',
         u'Still_to_be_delivered_qty',
@@ -226,11 +229,16 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
 
 def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
+    """
+    Read bmstatus in path
 
-    bmObjects = []
+    :param path:
+    :param output:
+    :return:
+    """
+
 
     rowObjList = []
-
     bm_sheets = []
     #get all sheets in path
     sheets = fileReader.getAllSheetsInPath(path, recursive=True)
@@ -248,38 +256,89 @@ def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
         rowObjList.extend(rowObjs)
 
-    #
-    bm92_set = set()
-    bmno92_set = set()
+
+
+    # addint to set
     bm_set = set()
+    bm_notall = set()
     for row in rowObjList:
         bmobj = BMStatusRecord()
         bmobj = initWithAttrsToNone(bmobj, attris)
         for k, v in row.__dict__.items():
             if k in attris:
                 bmobj.__dict__[k] = fileReader.clearUnicode(v)
-        if bmobj.IST92:
-            bm92_set.add(bmobj)
-        else:
-            bmno92_set.add(bmobj)
         bm_set.add(bmobj)
 
-    print("BMstatus rate,", len(bm_set), len(rowObjList),
-          "BM92 rate",len(bm92_set), len(bm_set),
-          "BM NO 92 rate,", len(bmno92_set), len(bm_set)
+    bm_dict = {}
+    updateCount = 0
+    for bm in list(bm_set):
+        if bm.BAUMASSNAHME_ID and bm.BS_FE and bm.PRICING:
+            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE, bm.PRICING)
+            if unique not in bm_dict:
+                bm_dict[unique] = bm
+            else:
+                # do some exchange
+                oldbm = bm_dict[unique]
+                if bm.IST92 and not oldbm.IST92:
+                    bm_dict[unique] = bm
+                    updateCount += 1
+        else:
+            bm_notall.add(bm)
+
+    result = set()
+    for k, v in bm_dict.items():
+        result.add(v)
+
+    print("BM rate", len(bm_set), len(rowObjList),
+          "BM ok rate", len(result),"Update", updateCount,
+          "BM Not all infomation", len(bm_notall)
     )
 
+    fileWriter.outputObjectsToFile(list(result),'Raw_Bmstatus_all','output/dn_maker/')
+    storeRawData(list(result),"Raw_Bmstatus_all",'output/raw/')
+    fileWriter.outputObjectsToFile(list(bm_notall),'Raw_Bmstatus_Notall','output/error/')
+
+    return list(result)
 
 
+def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_me5a/", output=True):
+    """
+
+    :param path:
+    :return:
+    """
+    attris = [
+            u'Deletion_Indicator',
+            u'Delivery_Date',
+            u'Item_of_Requisition',
+            u'Material',
+            u'Name_of_Vendor',
+            u'Order',
+            u'Purchase_Order',
+            u'Purchase_Order_Date',
+            u'Purchase_Order_Item',
+            u'Purchase_Requisition',
+    ]
+
+    drRows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
+
+    pr_set = set()
+    # cover rows as bmboject
+    for row in drRows:
+        prObj = PurchaseRequisitionRecord()
+        prObj = initWithAttrsToNone(prObj, attris)
+        for k, v in row.__dict__.items():
+            if k in attris:
+                prObj.__dict__[k] = fileReader.clearUnicode(v)
+        if prObj.Order and prObj.Material and prObj.Purchase_Order and prObj.Purchase_Requisition:
+            pr_set.add(prObj)
 
     if output:
-        fileWriter.outputObjectsToFile(list(bm92_set), "Raw_BM_92",'output/dn_maker/')
-        fileWriter.outputObjectsToFile(list(bm_set), "Raw_BM_ALL",'output/dn_maker/')
-        storeRawData(list(bm92_set), "Raw_BM_92")
-        if len(bmno92_set) != 0:
-            fileWriter.outputObjectsToFile(list(bmno92_set),"Raw_BM_NO92",'output/error/')
+        fileWriter.outputObjectsToFile(list(pr_set),'Raw_SAPPR','output/dn_maker/')
 
-    return list(bm92_set)
+        storeRawData(list(pr_set),'Raw_SAP_PR')
+    print("SAP DN Rate: ", len(pr_set), len(drRows))
+    return list(pr_set)
 
 
 
