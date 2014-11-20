@@ -238,12 +238,12 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
 
 
-def get_AllBMStatusRecordInPath(path='input/po_bmstatus/',
+def get_AllBMStatusRecordInPath(inputpath='input/po_bmstatus/',
                                 outputfilename=None, outputpath = None):
     """
     Read bmstatus in path
 
-    :param path:
+    :param inputpath:
     :param output:
     :return:
     """
@@ -252,7 +252,7 @@ def get_AllBMStatusRecordInPath(path='input/po_bmstatus/',
     rowObjList = []
     bm_sheets = []
     #get all sheets in path
-    sheets = fileReader.getAllSheetsInPath(path, recursive=True)
+    sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',
               u'IST26',u'IST82',u'IST100',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU']

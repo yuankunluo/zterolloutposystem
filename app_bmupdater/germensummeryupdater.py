@@ -33,11 +33,11 @@ class GermanUpdateRecord(Record):
 
 
 
-def step1_getAllGermanProjectRecordsInPath(path="input/germany_summary/", output=True):
+def step1_getAllGermanProjectRecordsInPath(inputPath="input/germany_summary/", outputFilename=None, outputPath = None):
     """
 
-    :param path:
-    :param output:
+    :param inputPath:
+    :param outputFilename:
     :return:
     """
     HEADER_REGX ={
@@ -66,7 +66,7 @@ def step1_getAllGermanProjectRecordsInPath(path="input/germany_summary/", output
                   u'New LTE'
     ]
 
-    rowObjecs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
+    rowObjecs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(inputPath))
 
 
     result = {}
@@ -90,10 +90,15 @@ def step1_getAllGermanProjectRecordsInPath(path="input/germany_summary/", output
 
             result[row.Sheetname].add(gmsObj)
 
+    if not outputFilename:
+        outputFilename = "RAW_German_summary"
+    if not outputPath:
+        outputPath = "output/bm_updater/"
+
     fileWriter.outputObjectDictToFile(result,
-                                      'Raw_GermanProjectSummery',
-                                      'output/bm_updater/')
-    recordReader.storeRawData(result,"Raw_GermanProjectSummery","output/raw/")
+                                      outputFilename,
+                                      outputPath)
+    recordReader.storeRawData(result,outputFilename,"output/raw/")
 
     return result
 
@@ -107,7 +112,8 @@ def step2_getBMstatusInPath(bmpath='input/infra_bmstatus/'):
     """
 
 
-    bmstatus = recordReader.get_AllBMStatusRecordInPath(bmpath,"BM_Infra_All","output/bm_updater/")
+    bmstatus = recordReader.get_AllBMStatusRecordInPath(inputpath=bmpath,
+            outputfilename="Infra_BM_All",outputpath="output/bm_updater/")
 
     return bmstatus
 
@@ -158,6 +164,10 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
                             update = GermanUpdateRecord(bm, german)
                             update_set.add(update)
 
+                        for bk, bv in bm.__dict__.items():
+                            if bk in german.__dict__:
+                                german.__dict__[bk] = bv
+
 
             if german.BAUMASSNAHME_ID and german.BS_FE and not german.NBNEU:
                     unique = (german.BAUMASSNAHME_ID, german.BS_FE)
@@ -174,13 +184,19 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
                             update = GermanUpdateRecord(bm, german)
                             update_set.add(update)
 
+                        for bk, bv in bm.__dict__.items():
+                            if bk in german.__dict__:
+                                german.__dict__[bk] = bv
 
     print("Updatecount", len(update_set))
 
     fileWriter.outputObjectDictToFile(germanDict,'German_Project_Summary',
                                       'output/bm_updater/','%Y%m%d')
-    fileWriter.outputObjectsListToFile(update_set,'German_Project_Summary_update',
+
+    fileWriter.outputObjectsListToFile(update_set,'German_Project_Summary_updatelist',
                                    'output/bm_updater/')
+
+
 
     return germanDict
 
