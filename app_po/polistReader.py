@@ -55,13 +55,13 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
 
 
     if output:
-        fileWriter.outputObjectsToFile(poObjes,
+        fileWriter.outputObjectsListToFile(poObjes,
                                        outputfile + fileWriter.getNowAsString(),
                                        outputpath)
         if len(wrongPos) != 0:
-            fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
+            fileWriter.outputObjectsListToFile(wrongPos, 'Unvalid-po', 'output/error/')
         if len(hidden)!= 0:
-            fileWriter.outputObjectsToFile(hidden, 'Hidden-po', 'output/error/')
+            fileWriter.outputObjectsListToFile(hidden, 'Hidden-po', 'output/error/')
         fileWriter.outputListOfTupleToFile(ztemcodes,'zte_mcodes','output/zte_mcodes')
         print("Statistic %d PO Records in File %s" % (len(poObjes), outputfile))
 

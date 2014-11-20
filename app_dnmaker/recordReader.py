@@ -11,19 +11,29 @@ from tools.fileReader import ExcelRowObject
 
 class Record(object):
 
-    def __eq__(self, other):
-        if self.__dict__ == other.__dict__:
-            return True
-        else:
-            return False
 
-    def __hash__(self):
-        value = 0
+
+    def __key(self):
+        values = ""
         for k, v in self.__dict__.items():
             if not re.match(".*(source).*", k, re.IGNORECASE):
                 if v:
-                    value += hash(v)
-        return value
+                    values += v
+
+        return values
+
+    def __str__(self):
+        values = ""
+        for k, v in self.__dict__.items():
+            values += str(k) + ":" + str(v) + '\n'
+        return values
+
+
+    def __eq__(x, y):
+        return x.__key() == y.__key()
+
+    def __hash__(self):
+        return hash(self.__key())
 
     def __cmp__(self, other):
         if hash(self) > hash(other):
@@ -90,7 +100,7 @@ def get_ALLZteposInPath():
     print("ZPO non rate", len(po_set), len(polist))
 
     storeRawData(list(po_set), "Raw_ZTEPO","output/raw/")
-    fileWriter.outputObjectsToFile(list(po_set),'Raw_ZTEPO','output/dn_maker/')
+    fileWriter.outputObjectsListToFile(list(po_set),'Raw_ZTEPO','output/dn_maker/')
     return list(po_set)
 
 
@@ -132,9 +142,9 @@ def get_AllSappoInPath(path = 'input/po_ztematerial_to_sappo_zztepolist/' , outp
 
     # output
     if output:
-        fileWriter.outputObjectsToFile(list(sapopo_set),'Raw_SAPPO','output/dn_maker/')
+        fileWriter.outputObjectsListToFile(list(sapopo_set),'Raw_SAPPO','output/dn_maker/')
         if len(missing_set) != 0:
-            fileWriter.outputObjectsToFile(list(missing_set),"Raw_SAPPPO_missing",'output/error/')
+            fileWriter.outputObjectsListToFile(list(missing_set),"Raw_SAPPPO_missing",'output/error/')
         storeRawData(list(sapopo_set),'Raw_SAPPO')
     print("SAP PO rate", len(sapopo_set), len(rowObjs), "Information Miss",len(missing_set))
     return list(sapopo_set)
@@ -187,9 +197,9 @@ def get_AllSapdnInPath(path='input/po_vendor_to_sapdn_me2l/', output=True):
             missing_set.add(drobj)
 
     if output:
-        fileWriter.outputObjectsToFile(list(drObjects_set),'Raw_SAPDN','output/dn_maker/')
+        fileWriter.outputObjectsListToFile(list(drObjects_set),'Raw_SAPDN','output/dn_maker/')
         if len(missing_set) != 0:
-            fileWriter.outputObjectsToFile(list(missing_set),'Raw_SAPDN_Missing','output/error/')
+            fileWriter.outputObjectsListToFile(list(missing_set),'Raw_SAPDN_Missing','output/error/')
         storeRawData(list(drObjects_set),'Raw_SAP_DN')
     print("SAP DN Rate: ", len(drObjects_set), len(drRows),
           'Missing: ', len(missing_set))
@@ -219,16 +229,17 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
     print("SAP Orbmid rate", len(orbmid_set), len(rows))
     if output:
-        fileWriter.outputObjectsToFile(list(orbmid_set), "Raw_Orbmid",'output/dn_maker/')
+        fileWriter.outputObjectsListToFile(list(orbmid_set), "Raw_Orbmid",'output/dn_maker/')
         storeRawData(list(orbmid_set), "Raw_Orbmid")
         if len(miss_set) != 0:
-            fileWriter.outputObjectsToFile(list(miss_set),"Raw_Orbmid_missing",'output/error/')
+            fileWriter.outputObjectsListToFile(list(miss_set),"Raw_Orbmid_missing",'output/error/')
 
     return list(orbmid_set)
 
 
 
-def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
+def get_AllBMStatusRecordInPath(path='input/po_bmstatus/',
+                                outputfilename=None, outputpath = None):
     """
     Read bmstatus in path
 
@@ -242,7 +253,8 @@ def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
     bm_sheets = []
     #get all sheets in path
     sheets = fileReader.getAllSheetsInPath(path, recursive=True)
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',
+              u'IST26',u'IST82',u'IST100',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU']
     # test if this is a good bm status list
     for sheet in sheets:
@@ -256,10 +268,8 @@ def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
         rowObjList.extend(rowObjs)
 
-
-
-    # addint to set
-    bm_set = set()
+    # addint to list
+    bm_list = []
     bm_notall = set()
     for row in rowObjList:
         bmobj = BMStatusRecord()
@@ -267,13 +277,15 @@ def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
         for k, v in row.__dict__.items():
             if k in attris:
                 bmobj.__dict__[k] = fileReader.clearUnicode(v)
-        bm_set.add(bmobj)
+        bm_list.append(bmobj)
+
+    print("Read BMs", len(bm_list))
 
     bm_dict = {}
     updateCount = 0
-    for bm in list(bm_set):
-        if bm.BAUMASSNAHME_ID and bm.BS_FE and bm.PRICING:
-            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE, bm.PRICING)
+    for bm in bm_list:
+        if bm.BAUMASSNAHME_ID and bm.BS_FE and bm.NBNEU:
+            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE, bm.NBNEU)
             if unique not in bm_dict:
                 bm_dict[unique] = bm
             else:
@@ -289,16 +301,21 @@ def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
     for k, v in bm_dict.items():
         result.add(v)
 
-    print("BM rate", len(bm_set), len(rowObjList),
+    print("BM rate", len(bm_list), len(rowObjList),
           "BM ok rate", len(result),"Update", updateCount,
           "BM Not all infomation", len(bm_notall)
     )
 
-    fileWriter.outputObjectsToFile(list(result),'Raw_Bmstatus_all','output/dn_maker/')
-    storeRawData(list(result),"Raw_Bmstatus_all",'output/raw/')
-    fileWriter.outputObjectsToFile(list(bm_notall),'Raw_Bmstatus_Notall','output/error/')
+    if not outputfilename:
+        outputfilename = "Raw_Bmstatus_All"
+    if not outputpath:
+        outputpath = "output/dn_maker/"
 
-    return list(result)
+    fileWriter.outputObjectsListToFile(bm_list,outputfilename,outputpath)
+    storeRawData(list(result),outputfilename,outputpath)
+    fileWriter.outputObjectsListToFile(list(bm_notall),outputfilename,'output/error/')
+
+    return result
 
 
 def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_me5a/", output=True):
@@ -334,7 +351,7 @@ def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_
             pr_set.add(prObj)
 
     if output:
-        fileWriter.outputObjectsToFile(list(pr_set),'Raw_SAPPR','output/dn_maker/')
+        fileWriter.outputObjectsListToFile(list(pr_set),'Raw_SAPPR','output/dn_maker/')
 
         storeRawData(list(pr_set),'Raw_SAP_PR')
     print("SAP DN Rate: ", len(pr_set), len(drRows))

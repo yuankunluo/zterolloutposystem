@@ -15,7 +15,7 @@ import copy
 # ---------------- write -------------------------------------
 
 
-def outputObjectsToFile(objects, filename, path, header = None):
+def outputObjectsListToFile(objects, filename, path, timeformatStr = None, header = None):
     if objects is None:
         print("None object can not be wrote")
         return
@@ -42,8 +42,57 @@ def outputObjectsToFile(objects, filename, path, header = None):
                 continue
         rowindex += 1
 
+    if timeformatStr:
+        filename += "_" + getNowAsString(timeformatStr)
+
     book.save(path + filename + '.xls')
     print("OK: output",path + filename + '.xls' )
+
+
+def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
+
+    if type(objectDict) != dict:
+        print("None object can not be wrote")
+        return
+
+    print("Enter output processing....")
+    book = Workbook()
+
+    for k, v in objectDict.items():
+        book = __writeObjectInoSheetOfBook(v, k, book)
+
+    if timeformatStr:
+        filename += "_" + getNowAsString(timeformatStr)
+
+    book.save(path + filename + '.xls')
+    print("OK: output",path + filename + '.xls' )
+
+
+
+
+def __writeObjectInoSheetOfBook(objects ,sheetname , book):
+
+    sheet = book.add_sheet(sheetname)
+    HEADER = []
+    for obj in objects:
+        HEADER.extend(obj.__dict__.keys())
+    HEADER = set(HEADER)
+    HEADER = list(HEADER)
+    HEADER.sort()
+
+    rowindex = 0
+    for colx in range(len(HEADER)):
+        sheet.write(0, colx, HEADER[colx])
+    for obj in objects:
+        for colx in range(len(HEADER)):
+            try:
+                sheet.write(rowindex+1, colx, obj.__dict__[HEADER[colx]])
+            except Exception:
+                continue
+        rowindex += 1
+
+    return book
+
 
 
 
