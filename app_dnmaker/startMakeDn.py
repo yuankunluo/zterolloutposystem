@@ -46,6 +46,82 @@ def doProductDN(raw_dict):
 
 
 
+# --------------------------------
+
+def startwithBM_1_addOrbmidToBmstatus(orbmids, bmstatus):
+    """
+
+    :param orbmids:
+    :param bmstatus:
+    :return:
+    """
+    bmbs_dict = {}
+    bs_dict = {}
+
+    for orbmid in orbmids:
+        if orbmid.NotesID and orbmid.Equipment:
+            unique = (orbmid.NotesID, orbmid.Equipment)
+            if unique not in bmbs_dict:
+                bmbs_dict[unique] = set()
+            bmbs_dict[unique].add(orbmid)
+        if orbmid.Equipment:
+            if orbmid.Equipment not in bs_dict:
+                bs_dict[orbmid.Equipment] = set()
+            bs_dict[orbmid.Equipment].add(orbmid)
+
+
+    bmbs_match = set()
+    bmbs_count = 0
+    bsonly_match = set()
+    bsonly_count = 0
+    nomatch = set()
+    nomatch_count = 0
+    more_bmbsmatch = set()
+    for bm in bmstatus:
+        if bm.BAUMASSNAHME_ID and bm.BS_FE:
+            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE)
+            # check if this unique in bmbs_dict
+            if unique in bmbs_dict:
+                order_set = bmbs_dict[unique]
+                if len(order_set) == 1:
+                    order = list(order_set)[0]
+                    for k, v in order.__dict__.items():
+                        bm.__dict__[k] = v
+                    bmbs_match.add(bm)
+                    bmbs_count += 1
+                if len(order_set) >1:
+                    more_bmbsmatch.union(order_set)
+
+            else:
+                if bm.BS_FE:
+                    if bm.BS_FE in bs_dict:
+                        order_set = bs_dict[bm.BS_FE]
+                        if len(order_set) == 1:
+                            order = list(order_set)[0]
+                            for k, v in order.__dict__.items():
+                                bm.__dict__[k] = v
+                            bsonly_match.add(bm)
+                            bsonly_count += 1
+                    else:
+                        nomatch.add(bm)
+                        nomatch_count += 1
+
+    print("BMBS MATCH", len(bmbs_match), bmbs_count,
+          "More BMBS Match", len(more_bmbsmatch),
+          "BSONLY MATCH",len(bsonly_match), bsonly_count,
+          "NO MATCH", len(nomatch), nomatch_count
+    )
+
+    fileWriter.outputObjectsToFile(list(more_bmbsmatch),"SBM_1_morebmbsmatch","output/error/")
+
+
+
+
+
+
+
+# --------------------------------
+
 
 def new_step1_AddOrbmidsToSapdns(orbmids = None, sapdns = None):
     """
@@ -65,7 +141,9 @@ def new_step1_AddOrbmidsToSapdns(orbmids = None, sapdns = None):
                 order_dup.add(orbmid)
             orbmids_dict[orbmid.Order].add(orbmid)
 
-    print("Orders count",len(orbmids_dict.keys()), len(orbmids))
+    print("Orders count",len(orbmids_dict.keys()), len(orbmids),
+          "Order dup count", len(order_dup)
+    )
 
     # do match
     matchCount = 0
@@ -112,83 +190,175 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
     """
 
     #build bm_dict
-    bsfe_dict = {}
-    bm_dict = {}
-    unique_dict = {}
+    bmbs_dict = {}
+    bsonly_dict = {}
+    bmonly_dict = {}
+
     for bm in bmstatus:
-        if bm.BAUMASSNAHME_ID:
-            if bm.BAUMASSNAHME_ID not in bm_dict:
-                bm_dict[bm.BAUMASSNAHME_ID] = set()
-            bm_dict[bm.BAUMASSNAHME_ID].add(bm)
-
-        if bm.BS_FE:
-            if bm.BS_FE not in bsfe_dict:
-                bsfe_dict[bm.BS_FE] = set()
-            bsfe_dict[bm.BS_FE].add(bm)
-
+        # add bmbs_dict
         if bm.BAUMASSNAHME_ID and bm.BS_FE:
             unique = (bm.BAUMASSNAHME_ID, bm.BS_FE)
-            if unique not in unique_dict:
-                unique_dict[unique] = set()
-            unique_dict[unique].add(bm)
+            if unique not in bmbs_dict:
+                bmbs_dict[unique] = set()
+            bmbs_dict[unique].add(bm)
+        # add bsonly
+        if bm.BS_FE:
+            if bm.BS_FE not in bsonly_dict:
+                bsonly_dict[bm.BS_FE] = set()
+            bsonly_dict[bm.BS_FE].add(bm)
+        # add bmonly:
+            if bm.BAUMASSNAHME_ID not in bmonly_dict:
+                bmonly_dict[bm.BAUMASSNAHME_ID] = set()
+            bmonly_dict[bm.BAUMASSNAHME_ID].add(bm)
 
-    print("bm_dict", len(bm_dict),
-          "bsfe_dict", len(bsfe_dict),
-          "unique_dict", len(unique_dict)
+
+    print("BMBS dict", len(bmbs_dict),
+          "BSONLY dict", len(bsonly_dict),
+          "BMONLY dict", len(bmonly_dict)
     )
 
 
-
-    uniqueMatch = []
-    uniqueMoreMatch = []
-    bsfeOneMatch = []
-    bsfeMoreMatch = []
+    bmbs_match = set()
+    bmonly_match = set()
+    bsonly_match = set()
+    match = set()
+    nomatch = set()
+    # do match
     for sapdn in sapdns:
         bm0 = bmstatus[0]
         for k, v in bm0.__dict__.items():
             if k not in sapdn.__dict__:
                 sapdn.__dict__[k] = None
-        # has unique
-        if sapdn.NotesID and sapdn.Equipment:
-            unique = (sapdn.NotesID, sapdn.Equipment)
-            # if unique is the in bmid
-            if unique in unique_dict:
-                bm_set = unique_dict[unique]
+        # check if this sapdn has information
+        if sapdn.Equipment and sapdn.NotesID:
+            unique_bmbs = (sapdn.NotesID, sapdn.Equipment)
+            # 1 check bmbs match
+            if unique_bmbs in bmbs_dict:
+                bm_set = bmbs_dict[unique_bmbs]
                 if len(bm_set) == 1:
                     bm = list(bm_set)[0]
                     for k, v in bm.__dict__.items():
                         sapdn.__dict__[k] = v
-                    uniqueMatch.append(sapdn)
+                    bmbs_match.add(sapdn)
+                    match.add(sapdn)
                     continue
-                if len(bm_set) > 1:
-                    uniqueMoreMatch.append(sapdn)
+            # 2 check bsonly match
+            elif unique_bmbs not in bmbs_dict and sapdn.Equipment in bsonly_dict:
+                bm_set = bsonly_dict[sapdn.Equipment]
+                if len(bm_set) == 1:
+                    bm = list(bm_set)[0]
+                    for k, v in bm.__dict__.items():
+                        sapdn.__dict__[k] = v
+                    bsonly_match.add(sapdn)
+                    match.add(sapdn)
+                    continue
+            # 3 checkn bmonly match
+            elif (unique_bmbs not in bmbs_dict
+                and sapdn.Equipment not in bsonly_dict
+                and sapdn.NotesID in bmonly_dict):
+                bm_set = bmonly_dict[sapdn.NotesID]
+                if len(bm_set) == 1:
+                    bm = list(bm_set)[0]
+                    for k, v in bm.__dict__.items():
+                        sapdn.__dict__[k] = v
+                    bsonly_match.add(sapdn)
+                    match.add(sapdn)
+                    continue
             else:
-                if sapdn.Equipment in bsfe_dict:
-                    bm_set = bsfe_dict[sapdn.Equipment]
-                    if len(bm_set) == 1:
-                        bm = list(bm_set)[0]
-                        for k, v in bm.__dict__.items():
-                            sapdn.__dict__[k] = v
-                        bsfeOneMatch.append(sapdn)
-                        continue
-                    if len(bm_set) > 1:
-                        bsfeMoreMatch.append(sapdn)
+                nomatch.add(sapdn)
 
-    match = []
-    match.extend(uniqueMatch)
-    match.extend(bsfeOneMatch)
-
-    nomatch = []
-    nomatch.extend(uniqueMoreMatch)
-    nomatch.extend(bsfeMoreMatch)
-
-    print("Step2 (BMID,BSFE) match",len(uniqueMatch),
-          "(BMID,BSFE) more match", len(uniqueMoreMatch),
-          "One BSFE match", len(bsfeOneMatch),
-          "More BSFE match", len(bsfeMoreMatch),
-          "Total match rate", len(match), len(bmstatus), len(sapdns),
-          "Total dismatch rate", len(nomatch), len(sapdns)
+    print("BMBS match", len(bmbs_match),
+          "BSONLY match", len(bsonly_match),
+          "BMONLY match", len(bmonly_dict),
+          "Total match", len(match),
+          "No match", len(nomatch)
     )
+
+
+    fileWriter.outputObjectsToFile(bmbs_match,"Step_2_BMBS_MATCH",'output/error/')
+    fileWriter.outputObjectsToFile(bsonly_match,"Step_2_BSONLY_Match",'output/error/')
+    fileWriter.outputObjectsToFile(bmonly_match,"Step_2_BMONLY_Match",'output/error/')
+    fileWriter.outputObjectsToFile(nomatch,"Step_2_Nomatch",'output/error/')
+
+    # bsfe_dict = {}
+    # bm_dict = {}
+    # unique_dict = {}
+    # for bm in bmstatus:
+    #
+    #     if bm.BAUMASSNAHME_ID:
+    #         if bm.BAUMASSNAHME_ID not in bm_dict:
+    #             bm_dict[bm.BAUMASSNAHME_ID] = set()
+    #         bm_dict[bm.BAUMASSNAHME_ID].add(bm)
+    #
+    #     if bm.BS_FE:
+    #         if bm.BS_FE not in bsfe_dict:
+    #             bsfe_dict[bm.BS_FE] = set()
+    #         bsfe_dict[bm.BS_FE].add(bm)
+    #
+    #     if bm.BAUMASSNAHME_ID and bm.BS_FE:
+    #         unique = (bm.BAUMASSNAHME_ID, bm.BS_FE)
+    #         if unique not in unique_dict:
+    #             unique_dict[unique] = set()
+    #         unique_dict[unique].add(bm)
+    #
+    # print("bm_dict", len(bm_dict),
+    #       "bsfe_dict", len(bsfe_dict),
+    #       "unique_dict", len(unique_dict)
+    # )
+    #
+    #
+    #
+    # uniqueMatch = []
+    # uniqueMoreMatch = []
+    # bsfeOneMatch = []
+    # bsfeMoreMatch = []
+    # for sapdn in sapdns:
+    #     bm0 = bmstatus[0]
+    #     for k, v in bm0.__dict__.items():
+    #         if k not in sapdn.__dict__:
+    #             sapdn.__dict__[k] = None
+    #     # has unique
+    #     if sapdn.NotesID and sapdn.Equipment:
+    #         unique = (sapdn.NotesID, sapdn.Equipment)
+    #         # if unique is the in bmid
+    #         if unique in unique_dict:
+    #             bm_set = unique_dict[unique]
+    #             if len(bm_set) == 1:
+    #                 bm = list(bm_set)[0]
+    #                 for k, v in bm.__dict__.items():
+    #                     sapdn.__dict__[k] = v
+    #                 uniqueMatch.append(sapdn)
+    #                 continue
+    #             if len(bm_set) > 1:
+    #                 uniqueMoreMatch.append(sapdn)
+    #         else:
+    #             if sapdn.Equipment in bsfe_dict:
+    #                 bm_set = bsfe_dict[sapdn.Equipment]
+    #                 if len(bm_set) == 1:
+    #                     bm = list(bm_set)[0]
+    #                     for k, v in bm.__dict__.items():
+    #                         sapdn.__dict__[k] = v
+    #                     bsfeOneMatch.append(sapdn)
+    #                     continue
+    #                 if len(bm_set) > 1:
+    #                     bsfeMoreMatch.append(sapdn)
+    #
+    # match = []
+    # match.extend(uniqueMatch)
+    # match.extend(bsfeOneMatch)
+    #
+    # nomatch = []
+    # nomatch.extend(uniqueMoreMatch)
+    # nomatch.extend(bsfeMoreMatch)
+    #
+    # print("Step2 (BMID,BSFE) match",len(uniqueMatch),
+    #       "(BMID,BSFE) more match", len(uniqueMoreMatch),
+    #       "One BSFE match", len(bsfeOneMatch),
+    #       "More BSFE match", len(bsfeMoreMatch),
+    #       "Total match rate", len(match), len(bmstatus), len(sapdns),
+    #       "Total dismatch rate", len(nomatch), len(sapdns)
+    # )
+    #
 
     fileWriter.outputObjectsToFile(sapdns,"Step2_SAPDN_WITH_BMSTATUS92", 'output/dn_maker/')
 
@@ -218,6 +388,7 @@ def new_step3_AddSapposToSapdns(sappos= None, sapdns = None):
             and sappo.SAP_Material
             and sappo.SAP_Item_of_PO
         ):
+            # muster consider the item(position)
             unique_pmi = (sappo.SAP_PurchNo , sappo.SAP_Material , sappo.SAP_Item_of_PO)
             if unique_pmi not in pmi_dict:
                 pmi_dict[unique_pmi] = set()
@@ -357,7 +528,7 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
     zpo_pmr_dict = {}
 
     for zpo in ztepos:
-        if (zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty):
+        if zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty:
             unique = (zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
             if unique not in zpo_pmr_dict:
                 zpo_pmr_dict[unique] = set()
@@ -415,8 +586,8 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
                         match.add(sapdn)
 
         else:
-            # if this ztepo has not match with sapdn
-            # we check it with the sapdn_bsfe-dict
+            # if this ztepo set has not match with sapdn set
+            # we check it with the sapdn_bsfe-dict to match every ztp's site id
             # using the Only one bsfe to match
             for zpo in list(zposet):
                 if zpo.ZTE_Site_ID and zpo.ZTE_Material:
