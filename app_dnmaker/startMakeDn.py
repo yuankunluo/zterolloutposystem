@@ -21,7 +21,9 @@ def getAllData():
     raw_dict['sapdns'] = sappns
     raw_dict['orbmids'] = orbmids
     raw_dict['ztepos'] = ztepos
+
     recordReader.storeRawData(raw_dict,"Raw_data_dict",'output/raw/')
+
     return raw_dict
 
 
@@ -44,24 +46,41 @@ def startDoProject(raw_dict):
 
     result = set()
     result_list = []
+    bmstatus = set()
     for proname, propath in projectDict.items():
         try:
-            bmstatus = recordReader.get_AllBMStatusRecordInPath(proname, propath)
-            result1 = new_step1_AddOrbmidsToSapdns(proname, orbmids, sapdns)
-            result2 = new_step2_addBmstatusToSapdns(proname, bmstatus, result1)
-            result3 = new_step3_AddSapposToSapdns(proname, sappos, result2)
-            result4 = new_step4_MixZteposIntoSapdns(proname, ztepos, result3)
-            result_list.extend(result4)
-            result4_set = set(result4)
-            result = result.union(result4_set)
-            recordReader.storeRawData(result4,proname+"_Step_4_Result")
+            bms = recordReader.get_AllBMStatusRecordInPath(proname, propath)
+            bmstatus = bmstatus.union(bms)
         except:
             continue
 
-    print("Dn set", len(result), len(result_list))
-    fileWriter.outputListOfTupleToFile(list(result_list),'DN_Prepare_ALL',"output/dn_maker/")
+    recordReader.storeRawData(result, "DN_Prepare_ALL","output/raw/")
+
+    result1 = new_step1_AddOrbmidsToSapdns("ALL", orbmids, sapdns)
+    result2 = new_step2_addBmstatusToSapdns("ALL", bmstatus, result1)
+    result3 = new_step3_AddSapposToSapdns("ALL", sappos, result2)
+    result4 = new_step4_MixZteposIntoSapdns("ALL", ztepos, result3)
+
 
 # --------------------------------
+
+def deleteDup(dataList):
+    result = {}
+    nondup = 0
+    result_list = []
+    for d in dataList:
+        h = 0
+        for k, v in d.__dict__.items():
+            if v:
+                h += hash(v)
+        if  not h in result:
+            result[h] = d
+            result_list.append(d)
+            nondup += 1
+
+    print(nondup, len(dataList))
+    fileWriter.outputObjectsListToFile(result_list,'DN_Delete_DUP','output/dn_maker/')
+
 
 
 def new_step1_AddOrbmidsToSapdns(projectname, orbmids, sapdns, outputname=None, outputpath=None,):
