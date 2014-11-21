@@ -42,6 +42,8 @@ def startDoProject(raw_dict):
 
 
 
+    result = set()
+    result_list = []
     for proname, propath in projectDict.items():
         try:
             bmstatus = recordReader.get_AllBMStatusRecordInPath(proname, propath)
@@ -49,9 +51,15 @@ def startDoProject(raw_dict):
             result2 = new_step2_addBmstatusToSapdns(proname, bmstatus, result1)
             result3 = new_step3_AddSapposToSapdns(proname, sappos, result2)
             result4 = new_step4_MixZteposIntoSapdns(proname, ztepos, result3)
+            result_list.extend(result4)
+            result4_set = set(result4)
+            result = result.union(result4_set)
             recordReader.storeRawData(result4,proname+"_Step_4_Result")
         except:
             continue
+
+    print("Dn set", len(result), len(result_list))
+    fileWriter.outputListOfTupleToFile(list(result_list),'DN_Prepare_ALL',"output/dn_maker/")
 
 # --------------------------------
 
@@ -234,86 +242,6 @@ def new_step2_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None
     fileWriter.outputObjectsListToFile(bsonly_match,outputname + '_bsonly_match','output/error/')
     fileWriter.outputObjectsListToFile(nomatch,outputname + "_nomatch",'output/error/')
     fileWriter.outputObjectsListToFile(sapdns_with_bmid,outputname + "_sapdns_with_bmid",'output/error/')
-
-    # bsfe_dict = {}
-    # bm_dict = {}
-    # unique_dict = {}
-    # for bm in bmstatus:
-    #
-    #     if bm.BAUMASSNAHME_ID:
-    #         if bm.BAUMASSNAHME_ID not in bm_dict:
-    #             bm_dict[bm.BAUMASSNAHME_ID] = set()
-    #         bm_dict[bm.BAUMASSNAHME_ID].add(bm)
-    #
-    #     if bm.BS_FE:
-    #         if bm.BS_FE not in bsfe_dict:
-    #             bsfe_dict[bm.BS_FE] = set()
-    #         bsfe_dict[bm.BS_FE].add(bm)
-    #
-    #     if bm.BAUMASSNAHME_ID and bm.BS_FE:
-    #         unique = (bm.BAUMASSNAHME_ID, bm.BS_FE)
-    #         if unique not in unique_dict:
-    #             unique_dict[unique] = set()
-    #         unique_dict[unique].add(bm)
-    #
-    # print("bm_dict", len(bm_dict),
-    #       "bsfe_dict", len(bsfe_dict),
-    #       "unique_dict", len(unique_dict)
-    # )
-    #
-    #
-    #
-    # uniqueMatch = []
-    # uniqueMoreMatch = []
-    # bsfeOneMatch = []
-    # bsfeMoreMatch = []
-    # for sapdn in sapdns:
-    #     bm0 = bmstatus[0]
-    #     for k, v in bm0.__dict__.items():
-    #         if k not in sapdn.__dict__:
-    #             sapdn.__dict__[k] = None
-    #     # has unique
-    #     if sapdn.NotesID and sapdn.Equipment:
-    #         unique = (sapdn.NotesID, sapdn.Equipment)
-    #         # if unique is the in bmid
-    #         if unique in unique_dict:
-    #             bm_set = unique_dict[unique]
-    #             if len(bm_set) == 1:
-    #                 bm = list(bm_set)[0]
-    #                 for k, v in bm.__dict__.items():
-    #                     sapdn.__dict__[k] = v
-    #                 uniqueMatch.append(sapdn)
-    #                 continue
-    #             if len(bm_set) > 1:
-    #                 uniqueMoreMatch.append(sapdn)
-    #         else:
-    #             if sapdn.Equipment in bsfe_dict:
-    #                 bm_set = bsfe_dict[sapdn.Equipment]
-    #                 if len(bm_set) == 1:
-    #                     bm = list(bm_set)[0]
-    #                     for k, v in bm.__dict__.items():
-    #                         sapdn.__dict__[k] = v
-    #                     bsfeOneMatch.append(sapdn)
-    #                     continue
-    #                 if len(bm_set) > 1:
-    #                     bsfeMoreMatch.append(sapdn)
-    #
-    # match = []
-    # match.extend(uniqueMatch)
-    # match.extend(bsfeOneMatch)
-    #
-    # nomatch = []
-    # nomatch.extend(uniqueMoreMatch)
-    # nomatch.extend(bsfeMoreMatch)
-    #
-    # print("Step2 (BMID,BSFE) match",len(uniqueMatch),
-    #       "(BMID,BSFE) more match", len(uniqueMoreMatch),
-    #       "One BSFE match", len(bsfeOneMatch),
-    #       "More BSFE match", len(bsfeMoreMatch),
-    #       "Total match rate", len(match), len(bmstatus), len(sapdns),
-    #       "Total dismatch rate", len(nomatch), len(sapdns)
-    # )
-    #
 
     fileWriter.outputObjectsListToFile(sapdns,outputname+'_SAPDN_WITHBMID', 'output/dn_maker/')
 
