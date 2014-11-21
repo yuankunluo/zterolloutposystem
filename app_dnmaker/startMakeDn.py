@@ -46,6 +46,82 @@ def doProductDN(raw_dict):
 
 
 
+# --------------------------------
+
+def startwithBM_1_addOrbmidToBmstatus(orbmids, bmstatus):
+    """
+
+    :param orbmids:
+    :param bmstatus:
+    :return:
+    """
+    bmbs_dict = {}
+    bs_dict = {}
+
+    for orbmid in orbmids:
+        if orbmid.NotesID and orbmid.Equipment:
+            unique = (orbmid.NotesID, orbmid.Equipment)
+            if unique not in bmbs_dict:
+                bmbs_dict[unique] = set()
+            bmbs_dict[unique].add(orbmid)
+        if orbmid.Equipment:
+            if orbmid.Equipment not in bs_dict:
+                bs_dict[orbmid.Equipment] = set()
+            bs_dict[orbmid.Equipment].add(orbmid)
+
+
+    bmbs_match = set()
+    bmbs_count = 0
+    bsonly_match = set()
+    bsonly_count = 0
+    nomatch = set()
+    nomatch_count = 0
+    more_bmbsmatch = set()
+    for bm in bmstatus:
+        if bm.BAUMASSNAHME_ID and bm.BS_FE:
+            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE)
+            # check if this unique in bmbs_dict
+            if unique in bmbs_dict:
+                order_set = bmbs_dict[unique]
+                if len(order_set) == 1:
+                    order = list(order_set)[0]
+                    for k, v in order.__dict__.items():
+                        bm.__dict__[k] = v
+                    bmbs_match.add(bm)
+                    bmbs_count += 1
+                if len(order_set) >1:
+                    more_bmbsmatch.union(order_set)
+
+            else:
+                if bm.BS_FE:
+                    if bm.BS_FE in bs_dict:
+                        order_set = bs_dict[bm.BS_FE]
+                        if len(order_set) == 1:
+                            order = list(order_set)[0]
+                            for k, v in order.__dict__.items():
+                                bm.__dict__[k] = v
+                            bsonly_match.add(bm)
+                            bsonly_count += 1
+                    else:
+                        nomatch.add(bm)
+                        nomatch_count += 1
+
+    print("BMBS MATCH", len(bmbs_match), bmbs_count,
+          "More BMBS Match", len(more_bmbsmatch),
+          "BSONLY MATCH",len(bsonly_match), bsonly_count,
+          "NO MATCH", len(nomatch), nomatch_count
+    )
+
+    fileWriter.outputObjectsToFile(list(more_bmbsmatch),"SBM_1_morebmbsmatch","output/error/")
+
+
+
+
+
+
+
+# --------------------------------
+
 
 def new_step1_AddOrbmidsToSapdns(orbmids = None, sapdns = None):
     """

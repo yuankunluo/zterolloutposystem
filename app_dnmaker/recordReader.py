@@ -242,7 +242,7 @@ def get_AllBMStatusRecordInPath(path='input/po_bmstatus/', output=True):
     bm_sheets = []
     #get all sheets in path
     sheets = fileReader.getAllSheetsInPath(path, recursive=True)
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU']
     # test if this is a good bm status list
     for sheet in sheets:

@@ -54,10 +54,21 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
     ztemcodes = list(set(ztemcodes))
 
 
+    po_dict = {}
+    for po in poObjes:
+        if po.ZTE_Project:
+            if po.ZTE_Project not in po_dict:
+                po_dict[po.ZTE_Project] = []
+            po_dict[po.ZTE_Project].append(po)
+
+
+
     if output:
         fileWriter.outputObjectsToFile(poObjes,
                                        outputfile + fileWriter.getNowAsString(),
                                        outputpath)
+
+
         if len(wrongPos) != 0:
             fileWriter.outputObjectsToFile(wrongPos, 'Unvalid-po', 'output/error/')
         if len(hidden)!= 0:
