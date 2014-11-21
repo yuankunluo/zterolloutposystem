@@ -16,9 +16,8 @@ class Record(object):
     def __key(self):
         values = ""
         for k, v in self.__dict__.items():
-            if not re.match(".*(source).*", k, re.IGNORECASE):
-                if v:
-                    values += v
+            if v:
+                values += v
 
         return values
 
@@ -238,7 +237,7 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
 
 
-def get_AllBMStatusRecordInPath(inputpath='input/po_bmstatus/',
+def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
                                 outputfilename=None, outputpath = None):
     """
     Read bmstatus in path
@@ -277,6 +276,7 @@ def get_AllBMStatusRecordInPath(inputpath='input/po_bmstatus/',
         for k, v in row.__dict__.items():
             if k in attris:
                 bmobj.__dict__[k] = fileReader.clearUnicode(v)
+        bmobj.BM_SOURCE = row.Source
         bm_list.append(bmobj)
 
     print("Read BMs", len(bm_list))
@@ -307,9 +307,11 @@ def get_AllBMStatusRecordInPath(inputpath='input/po_bmstatus/',
     )
 
     if not outputfilename:
-        outputfilename = "Raw_Bmstatus_All"
+        outputfilename = "Raw_Bmstatus_" + bmprojectname
     if not outputpath:
         outputpath = "output/dn_maker/"
+
+
 
     fileWriter.outputObjectsListToFile(bm_list,outputfilename,outputpath)
     storeRawData(list(result),outputfilename,outputpath)
@@ -387,13 +389,11 @@ def loadRawData(path):
     return fileDict
 
 def storeRawData(object, filename, path='output/raw/'):
-    try:
-        with open(path + filename+ '.raw', 'wb') as f:
-            pickle.dump(object, f)
-        print("Store Objects in " +  path + filename +'.raw')
-    except Exception:
-        print(Exception.message)
-        print("Error:storeRawData," + path + filename + '.raw')
+
+    with open(path + filename+ '.raw', 'wb') as f:
+        pickle.dump(object, f)
+    print("Store Objects in " +  path + filename +'.raw')
+
 
 
 

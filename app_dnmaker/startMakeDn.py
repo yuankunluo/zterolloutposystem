@@ -8,122 +8,27 @@ import tools.fileWriter as fileWriter
 import copy
 import re
 
+
+
 def getAllData():
     sappos = recordReader.get_AllSappoInPath()
     sappns = recordReader.get_AllSapdnInPath()
     orbmids = recordReader.get_AllOrderBmidInPath()
     ztepos = recordReader.get_ALLZteposInPath()
-    bmstatus = recordReader.get_AllBMStatusRecordInPath()
 
     raw_dict = {}
     raw_dict['sappos'] = sappos
     raw_dict['sapdns'] = sappns
     raw_dict['orbmids'] = orbmids
     raw_dict['ztepos'] = ztepos
-    raw_dict['bmstatus'] = bmstatus
     recordReader.storeRawData(raw_dict,"Raw_data_dict",'output/raw/')
     return raw_dict
 
 
-def doProductDN(raw_dict):
-    """
-
-    :param raw_dict:
-    :return:
-    """
-    sappos = raw_dict['sappos']
-    sapdns =raw_dict['sapdns']
-    orbmids = raw_dict['orbmids']
-    ztepos = raw_dict['ztepos']
-    bmstatus = raw_dict['bmstatus']
-
-    sapdns = new_step1_AddOrbmidsToSapdns(orbmids, sapdns)
-    sapdns = new_step2_addBmstatusToSapdns(bmstatus, sapdns)
-    sapdns = new_step3_AddSapposToSapdns(sappos, sapdns)
-    sapdns = new_step4_MixZteposIntoSapdns(ztepos, sapdns)
-
-    return sapdns
-
-
-
-# --------------------------------
-
-def startwithBM_1_addOrbmidToBmstatus(orbmids, bmstatus):
-    """
-
-    :param orbmids:
-    :param bmstatus:
-    :return:
-    """
-    bmbs_dict = {}
-    bs_dict = {}
-
-    for orbmid in orbmids:
-        if orbmid.NotesID and orbmid.Equipment:
-            unique = (orbmid.NotesID, orbmid.Equipment)
-            if unique not in bmbs_dict:
-                bmbs_dict[unique] = set()
-            bmbs_dict[unique].add(orbmid)
-        if orbmid.Equipment:
-            if orbmid.Equipment not in bs_dict:
-                bs_dict[orbmid.Equipment] = set()
-            bs_dict[orbmid.Equipment].add(orbmid)
-
-
-    bmbs_match = set()
-    bmbs_count = 0
-    bsonly_match = set()
-    bsonly_count = 0
-    nomatch = set()
-    nomatch_count = 0
-    more_bmbsmatch = set()
-    for bm in bmstatus:
-        if bm.BAUMASSNAHME_ID and bm.BS_FE:
-            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE)
-            # check if this unique in bmbs_dict
-            if unique in bmbs_dict:
-                order_set = bmbs_dict[unique]
-                if len(order_set) == 1:
-                    order = list(order_set)[0]
-                    for k, v in order.__dict__.items():
-                        bm.__dict__[k] = v
-                    bmbs_match.add(bm)
-                    bmbs_count += 1
-                if len(order_set) >1:
-                    more_bmbsmatch.union(order_set)
-
-            else:
-                if bm.BS_FE:
-                    if bm.BS_FE in bs_dict:
-                        order_set = bs_dict[bm.BS_FE]
-                        if len(order_set) == 1:
-                            order = list(order_set)[0]
-                            for k, v in order.__dict__.items():
-                                bm.__dict__[k] = v
-                            bsonly_match.add(bm)
-                            bsonly_count += 1
-                    else:
-                        nomatch.add(bm)
-                        nomatch_count += 1
-
-    print("BMBS MATCH", len(bmbs_match), bmbs_count,
-          "More BMBS Match", len(more_bmbsmatch),
-          "BSONLY MATCH",len(bsonly_match), bsonly_count,
-          "NO MATCH", len(nomatch), nomatch_count
-    )
-
-    fileWriter.outputObjectsListToFile(list(more_bmbsmatch),"SBM_1_morebmbsmatch","output/error/")
-
-
-
-
-
-
-
 # --------------------------------
 
 
-def new_step1_AddOrbmidsToSapdns(orbmids = None, sapdns = None):
+def new_step1_AddOrbmidsToSapdns(projectname = None, outputname=None, outputpath=None,orbmids = None, sapdns = None):
     """
 
     :param orbmids:
@@ -177,11 +82,19 @@ def new_step1_AddOrbmidsToSapdns(orbmids = None, sapdns = None):
           "No Order", noOrderCount
     )
 
-    fileWriter.outputObjectsListToFile(sapdns,"Step_1_Sapdns_with_BMID",'output/dn_maker/')
+    if not outputname:
+        outputname = "Step_1_Sapdns_with_BMID"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
+
+    if projectname:
+        outputname = projectname + "_" + outputname
+
+    fileWriter.outputObjectsListToFile(sapdns,outputname,outputpath)
     return sapdns
 
 
-def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
+def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath = None, bmstatus=None, sapdns = None):
     """
 
     :param bmstatus: all bm92
@@ -193,6 +106,8 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
     bmbs_dict = {}
     bsonly_dict = {}
     bmonly_dict = {}
+
+    bmstatus = list(bmstatus)
 
     for bm in bmstatus:
         # add bmbs_dict
@@ -219,7 +134,6 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
 
 
     bmbs_match = set()
-    bmonly_match = set()
     bsonly_match = set()
     match = set()
     nomatch = set()
@@ -242,21 +156,11 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
                     bmbs_match.add(sapdn)
                     match.add(sapdn)
                     continue
+
             # 2 check bsonly match
+
             elif unique_bmbs not in bmbs_dict and sapdn.Equipment in bsonly_dict:
                 bm_set = bsonly_dict[sapdn.Equipment]
-                if len(bm_set) == 1:
-                    bm = list(bm_set)[0]
-                    for k, v in bm.__dict__.items():
-                        sapdn.__dict__[k] = v
-                    bsonly_match.add(sapdn)
-                    match.add(sapdn)
-                    continue
-            # 3 checkn bmonly match
-            elif (unique_bmbs not in bmbs_dict
-                and sapdn.Equipment not in bsonly_dict
-                and sapdn.NotesID in bmonly_dict):
-                bm_set = bmonly_dict[sapdn.NotesID]
                 if len(bm_set) == 1:
                     bm = list(bm_set)[0]
                     for k, v in bm.__dict__.items():
@@ -269,16 +173,26 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
 
     print("BMBS match", len(bmbs_match),
           "BSONLY match", len(bsonly_match),
-          "BMONLY match", len(bmonly_dict),
           "Total match", len(match),
           "No match", len(nomatch)
     )
 
 
-    fileWriter.outputObjectsListToFile(bmbs_match,"Step_2_BMBS_MATCH",'output/error/')
-    fileWriter.outputObjectsListToFile(bsonly_match,"Step_2_BSONLY_Match",'output/error/')
-    fileWriter.outputObjectsListToFile(bmonly_match,"Step_2_BMONLY_Match",'output/error/')
-    fileWriter.outputObjectsListToFile(nomatch,"Step_2_Nomatch",'output/error/')
+    if not outputname:
+        outputname = "Step_2_BMBS_MATCH"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
+
+    if projectname:
+        outputname = projectname + "_" + outputname
+
+
+    sapdns_with_bmid = [sapdn for sapdn in sapdns if sapdn.BAUMASSNAHME_ID]
+
+    fileWriter.outputObjectsListToFile(bmbs_match,outputname + "_bmbs_match",'output/error/')
+    fileWriter.outputObjectsListToFile(bsonly_match,outputname + '_bsonly_match','output/error/')
+    fileWriter.outputObjectsListToFile(nomatch,outputname + "_nomatch",'output/error/')
+    fileWriter.outputObjectsListToFile(sapdns_with_bmid,outputname + "_sapdns_with_bmid",'output/error/')
 
     # bsfe_dict = {}
     # bm_dict = {}
@@ -360,12 +274,14 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
     # )
     #
 
-    fileWriter.outputObjectsListToFile(sapdns,"Step2_SAPDN_WITH_BMSTATUS92", 'output/dn_maker/')
+    fileWriter.outputObjectsListToFile(sapdns,outputname+'_SAPDN_WITHBMID', 'output/dn_maker/')
 
-    return sapdns
+    print("ADD bmid to sapdn rate", len(sapdns_with_bmid), len(sapdns))
+
+    return sapdns_with_bmid
 
 
-def new_step3_AddSapposToSapdns(sappos= None, sapdns = None):
+def new_step3_AddSapposToSapdns(projectname=None, outputname=None, outputpath = None,sappos= None, sapdns = None):
     """
 
     :param sappos:
@@ -425,14 +341,24 @@ def new_step3_AddSapposToSapdns(sappos= None, sapdns = None):
           "Diff", len(sapdns) - len(dismatch) - len(match)
     )
 
-    fileWriter.outputObjectsListToFile(sapdns,"Step3_SAPDN_With_SAPPO",'output/dn_maker/')
-    fileWriter.outputObjectsListToFile(dismatch,"Step3_SAPDN_Without_SAPPO",'output/error/')
+
+    if not outputname:
+        outputname = "Step3_SAPDN_With_SAPPO"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
+
+    if projectname:
+        outputname = projectname + "_" + outputname
+
+
+    fileWriter.outputObjectsListToFile(sapdns,outputname,outputpath)
+    fileWriter.outputObjectsListToFile(dismatch,outputname + '_without_SAPPO','output/error/')
 
     return sapdns
 
 
 
-def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
+def new_step4_MixZteposIntoSapdns(projectname=None, outputname=None, outputpath = None,ztepos=None, sapdns=None):
     """
 
     :param ztepos:
@@ -555,6 +481,7 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
 
         # if this unique has sappo
         if spo_set and zposet:
+            # unique onlye
             if len(spo_set) == len(zposet) == 1:
                 # one to one match
                 sapdn = list(spo_set)[0]
@@ -609,44 +536,24 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
     )
 
 
-    fileWriter.outputObjectsListToFile(zpo_nomatch,"Step4_ZPO_nomatch","output/error/")
-    fileWriter.outputObjectsListToFile(list(more_sapdn),"Step4_More_SAPDN","output/error/")
-    fileWriter.outputObjectsListToFile(list(more_zpo),"Step4_More_ZTEPO","output/error/")
-    fileWriter.outputObjectsListToFile(list(match),"Step4_Matach_taotal","output/dn_maker/")
+    if not outputname:
+        outputname = "Step_4"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
+
+    if projectname:
+        outputname = projectname + "_" + outputname
+
+    fileWriter.outputObjectsListToFile(zpo_nomatch,outputname +"_ZPO_nomatch","output/error/")
+    fileWriter.outputObjectsListToFile(list(more_sapdn),outputname+"_More_SAPDN","output/error/")
+    fileWriter.outputObjectsListToFile(list(more_zpo),outputname+"_More_ZTEPO","output/error/")
+    fileWriter.outputObjectsListToFile(list(match),outputname+"_Matach_taotal",outputpath)
 
     return match
 
 
 
-def new_step5_outputDNperProjectFromSapdns(sapdns):
-    sapdns = list(sapdns)
-    sapdn_dict = {}
-    dn_list = []
-    dnCount = 0
-    for sapdn in sapdns:
-        if sapdn.ZTE_Project:
-            if sapdn.IST92:
-                if not sapdn.Deletion_Indicator:
-                    if int(sapdn.Still_to_be_delivered_qty) != 0:
-                        if not sapdn.ZTE_CM_No:
-                            if sapdn.ZTE_Project not in sapdn_dict:
-                                sapdn_dict[sapdn.ZTE_Project] = set()
-                            sapdn_dict[sapdn.ZTE_Project].add(sapdn)
-                            dn_list.append(sapdn)
 
-                            dnCount += 1
-    print("DN Count", dnCount)
-    # for p, sapdn_set in sapdn_dict.items():
-    #     fname = "DN_"+fileWriter.getNowAsString("%Y%m%d") + "_"+ p + "_#_" +unicode(len(sapdn_set))
-    #     re.sub('\s','',fname)
-    #     fileWriter.outputObjectsToFile(list(sapdn_set),
-    #                                    fname,
-    #                                    "output/dn_maker/"
-    #                                    )
-    fname = "DN_"+fileWriter.getNowAsString("%Y%m%d") + "_"+"_All_#_" +unicode(len(dn_list))
-    fileWriter.outputObjectsListToFile(dn_list, fname, "output/dn_maker/")
-
-    return sapdn_dict
 
 
 

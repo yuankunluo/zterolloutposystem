@@ -69,7 +69,7 @@ def goThroughPolistDirectory(path = 'input/po_ztepolist/',
                                        outputpath)
 
         fileWriter.outputObjectDictToFile(po_dict,outputfile +"_Project_"+ fileWriter.getNowAsString(),
-                                          outputpath)
+                                          "output/zte_polist_project/")
         if len(wrongPos) != 0:
             fileWriter.outputObjectsListToFile(wrongPos, 'Unvalid-po', 'output/error/')
         if len(hidden)!= 0:

@@ -146,6 +146,7 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
 
 
     update_set = set()
+    new_92_set = set()
     for sheet, germans in germanDict.items():
         for german in germans:
             if german.BAUMASSNAHME_ID and german.BS_FE and german.NBNEU:
@@ -156,10 +157,13 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
                     if len(bm_set) == 1:
                         bm = list(bm_set)[0]
                         updated = False
+                        new92 = False
                         for bk, bv in bm.__dict__.items():
                             if bk in attris:
                                 if (german.__dict__[bk] != bm.__dict__[bk]):
                                     updated = True
+                                    if bk == u'IST92':
+                                        new92 = True
                         if updated:
                             update = GermanUpdateRecord(bm, german)
                             update_set.add(update)
@@ -167,6 +171,9 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
                         for bk, bv in bm.__dict__.items():
                             if bk in german.__dict__:
                                 german.__dict__[bk] = bv
+
+                        if new92:
+                            new_92_set.add(german)
 
 
             if german.BAUMASSNAHME_ID and german.BS_FE and not german.NBNEU:
@@ -176,10 +183,14 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
                         if len(bm_set) == 1:
                             bm = list(bm_set)[0]
                         updated = False
+                        new92 = False
                         for bk, bv in bm.__dict__.items():
                             if bk in attris:
                                 if (german.__dict__[bk] != bm.__dict__[bk]):
                                     updated = True
+                                    if bk == u'IST92':
+                                        new92 = True
+
                         if updated:
                             update = GermanUpdateRecord(bm, german)
                             update_set.add(update)
@@ -187,6 +198,10 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
                         for bk, bv in bm.__dict__.items():
                             if bk in german.__dict__:
                                 german.__dict__[bk] = bv
+
+                        if new92:
+                            new_92_set.add(german)
+
 
     print("Updatecount", len(update_set))
 
@@ -196,8 +211,10 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
     fileWriter.outputObjectsListToFile(update_set,'German_Project_Summary_updatelist',
                                    'output/bm_updater/')
 
+    fileWriter.outputObjectsListToFile(new_92_set,'German_Project_NEW92',
+                                   'output/bm_updater/')
 
-
+    recordReader.storeRawData(new_92_set, "German_project_NEW92",'output/raw/')
     return germanDict
 
 
