@@ -19,7 +19,7 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
     if objects is None:
         print("None object can not be wrote")
         return
-    print("Enter output processing....")
+    print("\nEnter output processing....")
     book = Workbook()
     sheet = book.add_sheet('Overview')
     if header == None:
@@ -55,7 +55,7 @@ def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
         print("None object can not be wrote")
         return
 
-    print("Enter output processing....")
+    print("\nEnter output processing....")
     book = Workbook()
 
     for k, v in objectDict.items():

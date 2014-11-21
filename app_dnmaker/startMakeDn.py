@@ -25,16 +25,48 @@ def getAllData():
     return raw_dict
 
 
+
+def startDoProject(raw_dict):
+    projectDict = {'BBU': 'input/infra_bmstatus_bbu/',
+                    'BPK': 'input/infra_bmstatus_bpk/',
+                    'LTE': 'input/infra_bmstatus_lte/',
+                    'RRUSWAP': 'input/infra_bmstatus_rruswap/',
+                    'UMTSNEW': 'input/infra_bmstatus_umtsnew/'
+    }
+
+
+    sappos =  raw_dict['sappos']
+    sapdns = raw_dict['sapdns']
+    orbmids = raw_dict['orbmids']
+    ztepos = raw_dict['ztepos']
+
+
+
+    for proname, propath in projectDict.items():
+        try:
+            bmstatus = recordReader.get_AllBMStatusRecordInPath(proname, propath)
+            result1 = new_step1_AddOrbmidsToSapdns(proname, orbmids, sapdns)
+            result2 = new_step2_addBmstatusToSapdns(proname, bmstatus, result1)
+            result3 = new_step3_AddSapposToSapdns(proname, sappos, result2)
+            result4 = new_step4_MixZteposIntoSapdns(proname, ztepos, result3)
+            recordReader.storeRawData(result4,proname+"_Step_4_Result")
+        except:
+            continue
+
 # --------------------------------
 
 
-def new_step1_AddOrbmidsToSapdns(projectname = None, outputname=None, outputpath=None,orbmids = None, sapdns = None):
+def new_step1_AddOrbmidsToSapdns(projectname, orbmids, sapdns, outputname=None, outputpath=None,):
     """
 
     :param orbmids:
     :param sapdns:
     :return:
     """
+    orbmids = copy.deepcopy(orbmids)
+    sapdns = copy.deepcopy(sapdns)
+
+
     # build order dict
     orbmids_dict = {}
     order_dup = set()
@@ -83,24 +115,27 @@ def new_step1_AddOrbmidsToSapdns(projectname = None, outputname=None, outputpath
     )
 
     if not outputname:
-        outputname = "Step_1_Sapdns_with_BMID"
+        outputname = "Step_1"
     if not outputpath:
         outputpath = 'output/dn_maker/'
 
     if projectname:
         outputname = projectname + "_" + outputname
 
-    fileWriter.outputObjectsListToFile(sapdns,outputname,outputpath)
+    fileWriter.outputObjectsListToFile(sapdns,outputname+'_Sapdns_with_BMID',outputpath)
     return sapdns
 
 
-def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath = None, bmstatus=None, sapdns = None):
+def new_step2_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, outputpath = None,):
     """
 
     :param bmstatus: all bm92
     :param sapdns:
     :return:
     """
+    bmstatus = copy.deepcopy(bmstatus)
+    sapdns = copy.deepcopy(sapdns)
+
 
     #build bm_dict
     bmbs_dict = {}
@@ -124,7 +159,9 @@ def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath 
         # add bmonly:
             if bm.BAUMASSNAHME_ID not in bmonly_dict:
                 bmonly_dict[bm.BAUMASSNAHME_ID] = set()
-            bmonly_dict[bm.BAUMASSNAHME_ID].add(bm)
+                bmonly_dict[bm.BAUMASSNAHME_ID].add(bm)
+            else:
+                bmonly_dict.pop(bm.BAUMASSNAHME_ID)
 
 
     print("BMBS dict", len(bmbs_dict),
@@ -137,12 +174,14 @@ def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath 
     bsonly_match = set()
     match = set()
     nomatch = set()
+
     # do match
     for sapdn in sapdns:
         bm0 = bmstatus[0]
         for k, v in bm0.__dict__.items():
             if k not in sapdn.__dict__:
                 sapdn.__dict__[k] = None
+
         # check if this sapdn has information
         if sapdn.Equipment and sapdn.NotesID:
             unique_bmbs = (sapdn.NotesID, sapdn.Equipment)
@@ -153,6 +192,7 @@ def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath 
                     bm = list(bm_set)[0]
                     for k, v in bm.__dict__.items():
                         sapdn.__dict__[k] = v
+                    sapdn.MATCH_TYPE = "BM_BS"
                     bmbs_match.add(sapdn)
                     match.add(sapdn)
                     continue
@@ -166,6 +206,7 @@ def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath 
                     for k, v in bm.__dict__.items():
                         sapdn.__dict__[k] = v
                     bsonly_match.add(sapdn)
+                    sapdn.MATCH_TYPE = "BS_ONLY"
                     match.add(sapdn)
                     continue
             else:
@@ -179,7 +220,7 @@ def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath 
 
 
     if not outputname:
-        outputname = "Step_2_BMBS_MATCH"
+        outputname = "Step_2"
     if not outputpath:
         outputpath = 'output/dn_maker/'
 
@@ -281,13 +322,18 @@ def new_step2_addBmstatusToSapdns(projectname=None, outputname=None, outputpath 
     return sapdns_with_bmid
 
 
-def new_step3_AddSapposToSapdns(projectname=None, outputname=None, outputpath = None,sappos= None, sapdns = None):
+def new_step3_AddSapposToSapdns(projectname, sappos, sapdns,outputname=None, outputpath = None,):
     """
 
     :param sappos:
     :param sapdns:
     :return:
     """
+    sappos = copy.deepcopy(sappos)
+    sapdns = copy.deepcopy(sapdns)
+
+
+
     d = {u'SAP_Doc_Date': u'41800',
      u'SAP_Item_of_PO': u'10',
      u'SAP_Material': u'50016774',
@@ -343,7 +389,7 @@ def new_step3_AddSapposToSapdns(projectname=None, outputname=None, outputpath = 
 
 
     if not outputname:
-        outputname = "Step3_SAPDN_With_SAPPO"
+        outputname = "Step_3"
     if not outputpath:
         outputpath = 'output/dn_maker/'
 
@@ -351,20 +397,23 @@ def new_step3_AddSapposToSapdns(projectname=None, outputname=None, outputpath = 
         outputname = projectname + "_" + outputname
 
 
-    fileWriter.outputObjectsListToFile(sapdns,outputname,outputpath)
+    fileWriter.outputObjectsListToFile(sapdns,outputname +'_SAPDN_With_SAPPO',outputpath)
     fileWriter.outputObjectsListToFile(dismatch,outputname + '_without_SAPPO','output/error/')
 
     return sapdns
 
 
 
-def new_step4_MixZteposIntoSapdns(projectname=None, outputname=None, outputpath = None,ztepos=None, sapdns=None):
+def new_step4_MixZteposIntoSapdns(projectname,ztepos, sapdns,outputname=None, outputpath = None,):
     """
 
     :param ztepos:
     :param sapdns:
     :return:
     """
+
+    ztepos = copy.deepcopy(ztepos)
+    sapdns = copy.deepcopy(sapdns)
 
     d_sappo = {u'SAP_Doc_Date': u'41800',
      u'SAP_Item_of_PO': u'10',

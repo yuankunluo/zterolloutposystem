@@ -254,7 +254,9 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
     sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',
               u'IST26',u'IST82',u'IST100',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU']
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU',
+              u'BAUMASSNAHMEVORLAGE',u'BAUMASSNAHMETYP',u'BESCHREIBUNG',
+    ]
     # test if this is a good bm status list
     for sheet in sheets:
         header = fileReader.getHeaderFromSheet(sheet)
@@ -307,14 +309,17 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
     )
 
     if not outputfilename:
-        outputfilename = "Raw_Bmstatus_" + bmprojectname
+        outputfilename = "Raw_Bmstatus"
     if not outputpath:
         outputpath = "output/dn_maker/"
+
+    if bmprojectname:
+        outputfilename = bmprojectname + "_" + outputfilename
 
 
 
     fileWriter.outputObjectsListToFile(bm_list,outputfilename,outputpath)
-    storeRawData(list(result),outputfilename,outputpath)
+    storeRawData(list(result),outputfilename,'output/raw/')
     fileWriter.outputObjectsListToFile(list(bm_notall),outputfilename,'output/error/')
 
     return result
