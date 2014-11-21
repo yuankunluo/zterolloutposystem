@@ -112,7 +112,7 @@ def startwithBM_1_addOrbmidToBmstatus(orbmids, bmstatus):
           "NO MATCH", len(nomatch), nomatch_count
     )
 
-    fileWriter.outputObjectsToFile(list(more_bmbsmatch),"SBM_1_morebmbsmatch","output/error/")
+    fileWriter.outputObjectsListToFile(list(more_bmbsmatch),"SBM_1_morebmbsmatch","output/error/")
 
 
 
@@ -177,7 +177,7 @@ def new_step1_AddOrbmidsToSapdns(orbmids = None, sapdns = None):
           "No Order", noOrderCount
     )
 
-    fileWriter.outputObjectsToFile(sapdns,"Step_1_Sapdns_with_BMID",'output/dn_maker/')
+    fileWriter.outputObjectsListToFile(sapdns,"Step_1_Sapdns_with_BMID",'output/dn_maker/')
     return sapdns
 
 
@@ -275,10 +275,10 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
     )
 
 
-    fileWriter.outputObjectsToFile(bmbs_match,"Step_2_BMBS_MATCH",'output/error/')
-    fileWriter.outputObjectsToFile(bsonly_match,"Step_2_BSONLY_Match",'output/error/')
-    fileWriter.outputObjectsToFile(bmonly_match,"Step_2_BMONLY_Match",'output/error/')
-    fileWriter.outputObjectsToFile(nomatch,"Step_2_Nomatch",'output/error/')
+    fileWriter.outputObjectsListToFile(bmbs_match,"Step_2_BMBS_MATCH",'output/error/')
+    fileWriter.outputObjectsListToFile(bsonly_match,"Step_2_BSONLY_Match",'output/error/')
+    fileWriter.outputObjectsListToFile(bmonly_match,"Step_2_BMONLY_Match",'output/error/')
+    fileWriter.outputObjectsListToFile(nomatch,"Step_2_Nomatch",'output/error/')
 
     # bsfe_dict = {}
     # bm_dict = {}
@@ -360,7 +360,7 @@ def new_step2_addBmstatusToSapdns(bmstatus=None, sapdns = None):
     # )
     #
 
-    fileWriter.outputObjectsToFile(sapdns,"Step2_SAPDN_WITH_BMSTATUS92", 'output/dn_maker/')
+    fileWriter.outputObjectsListToFile(sapdns,"Step2_SAPDN_WITH_BMSTATUS92", 'output/dn_maker/')
 
     return sapdns
 
@@ -425,8 +425,8 @@ def new_step3_AddSapposToSapdns(sappos= None, sapdns = None):
           "Diff", len(sapdns) - len(dismatch) - len(match)
     )
 
-    fileWriter.outputObjectsToFile(sapdns,"Step3_SAPDN_With_SAPPO",'output/dn_maker/')
-    fileWriter.outputObjectsToFile(dismatch,"Step3_SAPDN_Without_SAPPO",'output/error/')
+    fileWriter.outputObjectsListToFile(sapdns,"Step3_SAPDN_With_SAPPO",'output/dn_maker/')
+    fileWriter.outputObjectsListToFile(dismatch,"Step3_SAPDN_Without_SAPPO",'output/error/')
 
     return sapdns
 
@@ -609,10 +609,10 @@ def new_step4_MixZteposIntoSapdns(ztepos=None, sapdns=None):
     )
 
 
-    fileWriter.outputObjectsToFile(zpo_nomatch,"Step4_ZPO_nomatch","output/error/")
-    fileWriter.outputObjectsToFile(list(more_sapdn),"Step4_More_SAPDN","output/error/")
-    fileWriter.outputObjectsToFile(list(more_zpo),"Step4_More_ZTEPO","output/error/")
-    fileWriter.outputObjectsToFile(list(match),"Step4_Matach_taotal","output/dn_maker/")
+    fileWriter.outputObjectsListToFile(zpo_nomatch,"Step4_ZPO_nomatch","output/error/")
+    fileWriter.outputObjectsListToFile(list(more_sapdn),"Step4_More_SAPDN","output/error/")
+    fileWriter.outputObjectsListToFile(list(more_zpo),"Step4_More_ZTEPO","output/error/")
+    fileWriter.outputObjectsListToFile(list(match),"Step4_Matach_taotal","output/dn_maker/")
 
     return match
 
@@ -644,7 +644,7 @@ def new_step5_outputDNperProjectFromSapdns(sapdns):
     #                                    "output/dn_maker/"
     #                                    )
     fname = "DN_"+fileWriter.getNowAsString("%Y%m%d") + "_"+"_All_#_" +unicode(len(dn_list))
-    fileWriter.outputObjectsToFile(dn_list, fname, "output/dn_maker/")
+    fileWriter.outputObjectsListToFile(dn_list, fname, "output/dn_maker/")
 
     return sapdn_dict
 
@@ -732,10 +732,10 @@ def step1_MixSapPOandZTEPO(sappos = None, ztepos= None):
     print(len(result), len(sappos), len(nomatchzpo))
 
 
-    fileWriter.outputObjectsToFile(result, 'Step1_ZPO_SAP_Match','output/dn_maker/')
-    fileWriter.outputObjectsToFile(nomatchzpo, 'Step1_ZPO_SAP_Dismatch','output/error/')
+    fileWriter.outputObjectsListToFile(result, 'Step1_ZPO_SAP_Match','output/dn_maker/')
+    fileWriter.outputObjectsListToFile(nomatchzpo, 'Step1_ZPO_SAP_Dismatch','output/error/')
     recordReader.storeRawData(result, 'Step1_ZPO_SAP_Match','output/raw/')
-    fileWriter.outputObjectsToFile(sappos, 'Step1_mixed_ZPO','output/dn_maker/')
+    fileWriter.outputObjectsListToFile(sappos, 'Step1_mixed_ZPO','output/dn_maker/')
 
 
 
@@ -911,8 +911,8 @@ def step2_AddingSAPDNtoSappo(sappos = None, sapdns = None):
     )
 
 
-    fileWriter.outputObjectsToFile(result, 'Step2_SAPPO_SAPDN_Match','output/dn_maker/')
-    fileWriter.outputObjectsToFile(nosapdnforthisappo, 'Step1_ZPO_SAP_Dismatch','output/error/')
+    fileWriter.outputObjectsListToFile(result, 'Step2_SAPPO_SAPDN_Match','output/dn_maker/')
+    fileWriter.outputObjectsListToFile(nosapdnforthisappo, 'Step1_ZPO_SAP_Dismatch','output/error/')
     recordReader.storeRawData(result,'Step2_SAPPO_SAPDN_Match')
 
 
@@ -967,8 +967,8 @@ def step3_AddingBMIDandBsfeToSAPPO(sappos = None, orderbmids = None):
     )
 
 
-    fileWriter.outputObjectsToFile(result, 'Step3_SAPPO_Order_Match','output/dn_maker/')
-    fileWriter.outputObjectsToFile(noOrders, 'Step3_SAPPO_noorder','output/error/')
+    fileWriter.outputObjectsListToFile(result, 'Step3_SAPPO_Order_Match','output/dn_maker/')
+    fileWriter.outputObjectsListToFile(noOrders, 'Step3_SAPPO_noorder','output/error/')
     recordReader.storeRawData(result,'Step3_SAPPO_Order_Match')
 
     return result
@@ -1028,9 +1028,9 @@ def step4_AddBmstatusToSappos(sappos, bmstatus):
            and not sappo.Deletion_Indicator
     ]
 
-    fileWriter.outputObjectsToFile(result, 'Step4_SAPPO_with_BMSTATUS','output/dn_maker/')
-    fileWriter.outputObjectsToFile(nomatch, 'Step3_SAPPO_without_BMSTATUS','output/error/')
-    fileWriter.outputObjectsToFile(dns, 'Step4_DN','output/dn_maker/')
+    fileWriter.outputObjectsListToFile(result, 'Step4_SAPPO_with_BMSTATUS','output/dn_maker/')
+    fileWriter.outputObjectsListToFile(nomatch, 'Step3_SAPPO_without_BMSTATUS','output/error/')
+    fileWriter.outputObjectsListToFile(dns, 'Step4_DN','output/dn_maker/')
 
     print("Step4 Match rate", len(result), len(sappos),
           "Step4 No match", len(nomatch),
