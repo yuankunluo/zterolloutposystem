@@ -1,71 +1,59 @@
-ztepo.__dict__
-Out[51]: 
-{'Hidden': False,
- 'ZTE_CM_Date': u'40638',
- 'ZTE_CM_No': u'5101009596',
- 'ZTE_Contract_No': None,
- 'ZTE_Delivery_Date': u'40410',
- 'ZTE_Item_Code': None,
- 'ZTE_Material': u'50014172',
- 'ZTE_Origin_Mcode': u'50014172',
- 'ZTE_Origin_Qty': u'1',
- 'ZTE_POSource': 'input/po_ztepolist//zpo_20141112-Wireless.xlsx',
- 'ZTE_PO_Amount': u'2000',
- 'ZTE_PO_Date': u'40371',
- 'ZTE_PO_Nr': u'32001158',
- 'ZTE_Product_Description': u'B8200 (2 Bpc) + 3XR8840 + 3XOLP(DC) + cable set for B8200/RRU/OLP',
- 'ZTE_Project': u'UMTS New',
- 'ZTE_Qty': u'1',
- 'ZTE_Remark': None,
- 'ZTE_Site_ID': u'18534033'}
-
- 
- sappos[0].__dict__
-Out[52]: 
-{u'Doc_Date': u'41540',
- u'Item_of_PO': u'20',
- u'Material': u'50014366',
- u'Material_Description': u'ZTE.BPC,129553751031.AAB',
- u'PO_Quantity': u'2',
- u'Plant': u'0040',
- u'PurchNo': u'32010297',
- u'Reference_PO_Number': None,
- 'SAP_POSource': 'input/po_sappolist/Sap_polist_20141113.xlsx'}
-
- 
- sapdn[0].__dict__
-Out[53]: 
+sapdns.pop().__dict__
+Out[28]: 
 {u'Deletion_Indicator': None,
- u'Document_Date': u'41303',
- u'Document_item': u'0',
- u'Goods_recipient': u'A-E NBG S\xfcd',
+ u'Document_Date': u'41856',
+ u'Goods_recipient': None,
  u'Item': u'10',
- u'Material': u'50016312',
- u'Order': u'50160171',
- u'Order_Price_Unit': u'ST',
+ u'Material': u'50017101',
+ u'Order': u'50208413',
  u'Order_Quantity': u'1',
- u'Order_Unit': u'ST',
- u'Purchasing_Document': u'31040931',
- u'Purchasing_Info_Rec': u'5300123694',
- 'SAP_Source': 'input/po_deliver_records/Devliver_records_20141113.xlsx',
- u'Short_Text': u'ZTE LTE eNodeB  ZN000068 LTE outdoor MCO',
- u'Still_to_be_delivered_qty': u'0'}
+ u'Purchasing_Document': u'32013114',
+ u'Short_Text': u'ZTE. UMTS ZN000168  3xR8882, no BBU , up',
+ u'Still_to_be_delivered_qty': u'1'}
 
+
+
+sappos.pop().__dict__
+Out[29]: 
+{u'Item_of_PO': u'10',
+ u'Material': u'50014579',
+ u'Material_Description': u'ZTE 3G R8840(DC) +OLP(DC)+ cable set',
+ u'PO_Quantity': u'1',
+ u'PurchNo': u'32006491',
+ u'Reference_PO_Number': None}
+
+
+sapprs.pop().__dict__
+Out[33]: 
+{u'Deletion_Indicator': u'false',
+ u'Delivery_Date': u'20111010',
+ u'Item_of_Requisition': u'10',
+ u'Material': u'50014172',
+ u'Name_of_Vendor': u'ZTE CORPORATION',
+ u'Order': u'50056172',
+ u'Purchase_Order': u'32004809',
+ u'Purchase_Order_Date': u'40730',
+ u'Purchase_Order_Item': u'10',
+ u'Purchase_Requisition': u'10245793'}
+
+
+ztepos.pop().__dict__
+Out[34]: 
+{'ZTE_CM_Date': u'41883',
+ 'ZTE_CM_No': u'5101531993',
+ 'ZTE_Contract_No': None,
+ 'ZTE_Material': u'50017038',
+ 'ZTE_Origin_Mcode': u'50017038',
+ 'ZTE_PO_Amount': u'1848',
+ 'ZTE_PO_Nr': u'32012562',
+ 'ZTE_Project': u'UMTS Swap',
+ 'ZTE_Qty': u'1',
+ 'ZTE_Site_ID': u'16530091',
+ 'rowindex': u'1002'}
  
- orbmid[0].__dict__
-Out[54]: 
-{u'Equipment': u'16530181',
- u'NotesID': u'201024624',
- u'Order': u'50053329',
-}
+ orbmids.pop().__dict__
+Out[38]: {
+u'Equipment': u'17531337', 
+u'NotesID': u'201661552', 
+u'Order': u'50208399'}
 
-bmstatus[0].__dict__
-Out[55]: 
-{u'BAUMASSNAHME_ID': u'201687094',
- 'BM_Source': 'input/po_bmstatus//BM & Status-Daten_20141113.xlsx',
- u'BS_FE': u'11531006',
- u'GEMEINDE_NAME': u'Hohenlockstedt',
- u'IST92': u'41866',
- u'PLZ': u'25551',
- u'PRICING': u'X28',
- u'STRASSE': u'Kieler Str. 36'}

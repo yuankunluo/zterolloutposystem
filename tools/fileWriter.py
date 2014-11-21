@@ -16,10 +16,18 @@ import copy
 
 
 def outputObjectsListToFile(objects, filename, path, timeformatStr = None, header = None):
-    if objects is None:
+
+    if type(objects) is not list:
+        try:
+            objects  = list(objects)
+        except Exception:
+            print("Can not cover objects into list")
+            return
+
+    if objects is None or len(objects) == 0:
         print("None object can not be wrote")
         return
-    print("\nEnter output processing....")
+
     book = Workbook()
     sheet = book.add_sheet('Overview')
     if header == None:
@@ -52,10 +60,13 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
 def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
 
     if type(objectDict) != dict:
-        print("None object can not be wrote")
+        print("Not a Dict, object can not be wrote")
         return
 
-    print("\nEnter output processing....")
+    if len(objectDict) == 0:
+        print("Empty Dict, object can not be wrote")
+        return
+
     book = Workbook()
 
     for k, v in objectDict.items():
