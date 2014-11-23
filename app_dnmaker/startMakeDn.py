@@ -282,15 +282,9 @@ def step_3_AddSappToSapdns(sappos, sapdns,outputname=None, outputpath = None,):
     fileWriter.outputObjectsListToFile(unique_dismatch,outputname + '_SAPDN_SAPPO_uniquedismatch','output/error/')
     fileWriter.outputObjectsListToFile(unique_more, outputname + "_SAPPO_mormath","output/error/")
 
-    sapdns_still = set()
-    for sapdn in sapdns:
-        if sapdn.Still_to_be_delivered_qty:
-            if int(sapdn.Still_to_be_delivered_qty) != 0 and not sapdn.Deletion_Indicator:
-                sapdns_still.add(sapdn)
 
-    fileWriter.outputObjectsListToFile(sapdns_still, outputname+"_SAPD_With_SAPPO_StillToBeDelivery", outputpath)
 
-    return sapdns_still
+    return sapdns
 
 
 
@@ -310,17 +304,14 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
 
     # dict with ztepo
     zpo_spmq_dict = {}
-    zpo_nocm = set()
     for zpo in ztepos:
-        if not zpo.ZTE_CM_No:
-            zpo_nocm.add(zpo)
-            if zpo.ZTE_Site_ID and zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty:
-                unique = (zpo.ZTE_Site_ID, zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
-                if unique not in zpo_spmq_dict:
-                    zpo_spmq_dict[unique] = set()
-                zpo_spmq_dict[unique].add(zpo)
 
-    print("zpo spmq dict", len(zpo_spmq_dict),"ZPO no-cm set", len(zpo_nocm))
+        if zpo.ZTE_Site_ID and zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty:
+            unique = (zpo.ZTE_Site_ID, zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
+            if unique not in zpo_spmq_dict:
+                zpo_spmq_dict[unique] = set()
+            zpo_spmq_dict[unique].add(zpo)
+
 
 
 
@@ -457,9 +448,8 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
             if len(bm_set) == 1:
                 bm = list(bm_set)[0]
-                if not bm.IST92:
-                    continue
 
+                # set this sapdn to matched
                 sapdn.Matched = True
                 for k, v  in bm.__dict__.items():
                     if k in attris:
@@ -470,7 +460,6 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
                 else:
                     sapdn.__dict__['MatchType'] = 'BMBSBOTH'
                     bmbsmatch_set.add(sapdn)
-
                 allmatch_set.add(sapdn)
             else:
                 more_bmidmatch_set = more_bmidmatch_set.union(bm_set)
