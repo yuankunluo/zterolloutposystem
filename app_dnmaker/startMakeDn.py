@@ -30,18 +30,9 @@ def getAllSAPData():
     return raw_dict
 
 
+def doMatch(raw_dict):
 
-def startDoProject(raw_dict):
-
-    projectDict = {
-        'BBU': 'input/infra_bm_bbu/',
-        'BPK': 'input/infra_bm_bpk/',
-        # 'LTE': 'input/infra_bm_lte/',
-        # 'RRUSWAP': 'input/infra_bm_rruswap/',
-        # 'UMTSNEW': 'input/infra_bm_umtsnew/',
-    }
-
-    sappos =  raw_dict['sappos']
+    sappos = raw_dict['sappos']
     sapdns = raw_dict['sapdns']
     orbmids = raw_dict['orbmids']
     ztepos = raw_dict['ztepos']
@@ -53,14 +44,26 @@ def startDoProject(raw_dict):
     result3 = step_3_AddSappToSapdns(sappos, result2)
     result4 = step_4_MixZtepoAndSapdn(ztepos, result3)
 
-    dn_set = set()
+    recordReader.storeRawData(result4, "Step4_SAPDN_WITH_ZTEPO","output/raw/")
+
+    return result4
+
+def startDoProjectBMMatchToSapdns(sapdns):
+
+    projectDict = {
+        # 'BBU': 'input/infra_bm_bbu/',
+        'BPK': 'input/infra_bm_bpk/',
+        'LTE': 'input/infra_bm_lte/',
+        'RRUSWAP': 'input/infra_bm_rruswap/',
+        'UMTSNEW': 'input/infra_bm_umtsnew/',
+    }
 
     for project, bmpath in projectDict.items():
-        try:
-            bmstatus = recordReader.get_AllBMStatusRecordInPath(project, bmpath)
-            step_5_addBmstatusToSapdns(project, bmstatus, result4)
-        except Exception:
-            continue
+
+        bmstatus = recordReader.get_AllBMStatusRecordInPath(project, bmpath)
+        sapdns = step_5_addBmstatusToSapdns(project, bmstatus, sapdns)
+
+
 
     # fileWriter.outputObjectsListToFile(dn_set,"Step_6_DN_ALL","output/dn_maker/")
 
@@ -282,13 +285,12 @@ def step_3_AddSappToSapdns(sappos, sapdns,outputname=None, outputpath = None,):
     sapdns_still = set()
     for sapdn in sapdns:
         if sapdn.Still_to_be_delivered_qty:
-            if int(sapdn.Still_to_be_delivered_qty) != 0:
+            if int(sapdn.Still_to_be_delivered_qty) != 0 and not sapdn.Deletion_Indicator:
                 sapdns_still.add(sapdn)
 
     fileWriter.outputObjectsListToFile(sapdns_still, outputname+"_SAPD_With_SAPPO_StillToBeDelivery", outputpath)
 
-    return sapdns
-
+    return sapdns_still
 
 
 
@@ -406,7 +408,6 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
     #build bm_dict
     bmbs_dict = {}
     bsonly_dict = {}
-
     for bm in bmstatus:
         # add bmbs_dict
         if bm.BAUMASSNAHME_ID and bm.BS_FE:
@@ -426,61 +427,69 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
         "BSONLY dict", len(bsonly_dict),
     )
 
-
-    bmbs_match = set()
-    bsonly_match = set()
-    match_set = set()
-    nomatch = set()
-
-    bm_attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU',
-              u'BAUMASSNAHMEVORLAGE',u'BAUMASSNAHMETYP',u'BESCHREIBUNG',
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
     ]
 
+    nomatch_set = set()
+    bmbsmatch_set = set()
+    bsonlymatch_set = set()
+    allmatch_set = set()
+    more_bmidmatch_set = set()
     # do match
     for sapdn in sapdns:
+        # set it't matched to false
+        sapdn.__dict__['Matched'] = False
+
         # check if this sapdn has information
         if sapdn.Equipment and sapdn.NotesID:
             unique_bmbs = (sapdn.NotesID, sapdn.Equipment)
-
             # 1 check bmbs match
             if unique_bmbs in bmbs_dict:
                 bm_set = bmbs_dict[unique_bmbs]
-                # match only one
-                if len(bm_set) == 1:
-                    bm = list(bm_set)[0]
-                    for k, v in bm.__dict__.items():
-                        if k == 'IST92':
-                            sapdn.__dict__[k] = v
-                    sapdn.MATCH_TYPE = "BM_BS"
-                    bmbs_match.add(sapdn)
-                    match_set.add(sapdn)
-                    sapdns.pop(sapdn)
-                    continue
-
+                bsonly = False
             # 2 check bsonly match
-
-            elif unique_bmbs not in bmbs_dict and sapdn.Equipment in bsonly_dict:
+            elif sapdn.Equipment in bsonly_dict:
                 bm_set = bsonly_dict[sapdn.Equipment]
-                # match only one site id
-                if len(bm_set) == 1:
-                    bm = list(bm_set)[0]
-                    for k, v in bm.__dict__.items():
-                        if k in bm_attris:
-                            sapdn.__dict__[k] = v
-                    bsonly_match.add(sapdn)
-                    sapdn.MATCH_TYPE = "BS_ONLY"
-                    match_set.add(sapdn)
-                    sapdns.pop(sapdn)
-                    continue
+                bsonly = True
             else:
-                nomatch.add(sapdn)
+                nomatch_set.add(sapdn)
+                continue
 
-    print("BMBS match", len(bmbs_match),
-          "BSONLY match", len(bsonly_match),
-          "Total match", len(match_set),
-          "No match", len(nomatch),
-          "Rest SAPDNS", len(sapdns)
+            if len(bm_set) == 1:
+                bm = list(bm_set)[0]
+                if not bm.IST92:
+                    continue
+
+                sapdn.Matched = True
+                for k, v  in bm.__dict__.items():
+                    if k in attris:
+                        sapdn.__dict__[k] = v
+                if bsonly:
+                    sapdn.__dict__['MatchType'] = 'BSONLY'
+                    bsonlymatch_set.add(sapdn)
+                else:
+                    sapdn.__dict__['MatchType'] = 'BMBSBOTH'
+                    bmbsmatch_set.add(sapdn)
+
+                allmatch_set.add(sapdn)
+            else:
+                more_bmidmatch_set = more_bmidmatch_set.union(bm_set)
+                more_bmidmatch_set.add(sapdn)
+
+    # remove all matched sapdns
+
+    new_sapdns = set()
+    for sapdn in sapdns:
+        if not sapdn.Matched:
+            new_sapdns.add(sapdn)
+
+    print("BMBS match", len(bmbsmatch_set),
+          "BSONLY match", len(bsonlymatch_set),
+          "Total match", len(allmatch_set),
+          "No match", len(nomatch_set),
+          "Rest SAPDNS", len(new_sapdns),
+          "More BMID match", len(more_bmidmatch_set)
     )
 
 
@@ -490,21 +499,18 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
         outputpath = 'output/dn_maker/'
 
     if projectname:
-        outputname = projectname + "_" + outputname
+        outputname = outputname + '_' + projectname
 
 
-    sapdns_with_bmid = [sapdn for sapdn in sapdns if sapdn.BAUMASSNAHME_ID]
+    fileWriter.outputObjectsListToFile(bmbsmatch_set,outputname + "_bmbs_match",'output/error/')
+    fileWriter.outputObjectsListToFile(bsonlymatch_set,outputname + '_bsonly_match','output/error/')
+    fileWriter.outputObjectsListToFile(nomatch_set,outputname + "_nomatch",'output/error/')
+    fileWriter.outputObjectsListToFile(allmatch_set,outputname+'_SAPDN_BMSTATUS_matched_all', outputpath)
+    fileWriter.outputObjectsListToFile(more_bmidmatch_set,outputname + "_more_bmidmatch",'output/error/')
 
-    fileWriter.outputObjectsListToFile(bmbs_match,outputname + "_bmbs_match",'output/error/')
-    fileWriter.outputObjectsListToFile(bsonly_match,outputname + '_bsonly_match','output/error/')
-    fileWriter.outputObjectsListToFile(nomatch,outputname + "_nomatch",'output/error/')
-    fileWriter.outputObjectsListToFile(sapdns_with_bmid,outputname + "_sapdns_with_bmid",'output/error/')
+    print("ADD bmid to sapdn rate", len(allmatch_set), len(sapdns))
 
-    fileWriter.outputObjectsListToFile(sapdns,outputname+'_SAPDN_With_BMSTATUS', outputpath)
-
-    print("ADD bmid to sapdn rate", len(sapdns_with_bmid), len(sapdns))
-
-    return sapdns_with_bmid
+    return new_sapdns
 
 
 

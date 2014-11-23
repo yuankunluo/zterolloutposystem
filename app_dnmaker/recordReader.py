@@ -17,7 +17,7 @@ class Record(object):
         values = ""
         for k, v in self.__dict__.items():
             if v:
-                values += v
+                values += unicode(v)
 
         return values
 
@@ -262,10 +262,8 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
     bm_sheets = []
     #get all sheets in path
     sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',
-              u'IST26',u'IST82',u'IST100',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU',
-              u'BAUMASSNAHMEVORLAGE',u'BAUMASSNAHMETYP',u'BESCHREIBUNG',
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
     ]
     # test if this is a good bm status list
     for sheet in sheets:
