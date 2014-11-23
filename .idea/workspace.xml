@@ -26,8 +26,8 @@
       <file leaf-file-name="startMakeDn.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app_dnmaker/startMakeDn.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.91079813" vertical-offset="8671" max-vertical-offset="11096">
-              <caret line="493" column="0" selection-start-line="493" selection-start-column="0" selection-end-line="493" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.7026604" vertical-offset="691" max-vertical-offset="11096">
+              <caret line="66" column="0" selection-start-line="66" selection-start-column="0" selection-end-line="66" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -583,8 +583,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app_dnmaker/startMakeDn.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.91079813" vertical-offset="8671" max-vertical-offset="11096">
-          <caret line="493" column="0" selection-start-line="493" selection-start-column="0" selection-end-line="493" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.7026604" vertical-offset="691" max-vertical-offset="11096">
+          <caret line="66" column="0" selection-start-line="66" selection-start-column="0" selection-end-line="66" selection-end-column="0" />
           <folding />
         </state>
       </provider>

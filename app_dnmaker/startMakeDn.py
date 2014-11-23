@@ -65,9 +65,9 @@ def startDoProjectBMMatchToSapdns(sapdns):
 
 
 
-    # fileWriter.outputObjectsListToFile(dn_set,"Step_6_DN_ALL","output/dn_maker/")
+    fileWriter.outputObjectsListToFile(sapdns,"Step_6_SAPDN_Nomatch","output/dn_maker/")
 
-    # return dn_set
+    return sapdns
 
 
 
