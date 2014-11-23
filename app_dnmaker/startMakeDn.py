@@ -10,7 +10,7 @@ import re
 
 
 
-def getAllData():
+def getAllSAPData():
     sappos = recordReader.get_AllSappoInPath()
     sappns = recordReader.get_AllSapdnInPath()
     orbmids = recordReader.get_AllOrderBmidInPath()
@@ -32,21 +32,39 @@ def getAllData():
 
 
 def startDoProject(raw_dict):
-    projectDict = {'BBU': 'input/infra_bmstatus_bbu/',
-                    'BPK': 'input/infra_bmstatus_bpk/',
-                    'LTE': 'input/infra_bmstatus_lte/',
-                    'RRUSWAP': 'input/infra_bmstatus_rruswap/',
-                    'UMTSNEW': 'input/infra_bmstatus_umtsnew/'
-    }
 
+    projectDict = {
+        'BBU': 'input/infra_bm_bbu/',
+        'BPK': 'input/infra_bm_bpk/',
+        # 'LTE': 'input/infra_bm_lte/',
+        # 'RRUSWAP': 'input/infra_bm_rruswap/',
+        # 'UMTSNEW': 'input/infra_bm_umtsnew/',
+    }
 
     sappos =  raw_dict['sappos']
     sapdns = raw_dict['sapdns']
     orbmids = raw_dict['orbmids']
     ztepos = raw_dict['ztepos']
+    sapprs = raw_dict['sapprs']
 
 
+    result1 = step_1_AddOrbmidsToSapdns(orbmids,sapdns)
+    result2 = step_2_AddSapPurchasingRequestToSapdns(sapprs, result1)
+    result3 = step_3_AddSappToSapdns(sappos, result2)
+    result4 = step_4_MixZtepoAndSapdn(ztepos, result3)
 
+    dn_set = set()
+
+    for project, bmpath in projectDict.items():
+        try:
+            bmstatus = recordReader.get_AllBMStatusRecordInPath(project, bmpath)
+            step_5_addBmstatusToSapdns(project, bmstatus, result4)
+        except Exception:
+            continue
+
+    # fileWriter.outputObjectsListToFile(dn_set,"Step_6_DN_ALL","output/dn_maker/")
+
+    # return dn_set
 
 
 
@@ -257,11 +275,21 @@ def step_3_AddSappToSapdns(sappos, sapdns,outputname=None, outputpath = None,):
         outputpath = 'output/dn_maker/'
 
 
-    fileWriter.outputObjectsListToFile(sapdns,outputname +'_SAPDN_With_SAPPO',outputpath)
+    fileWriter.outputObjectsListToFile(sapdns,outputname +'_SAPDN_With_SAPPO_ALL',outputpath)
     fileWriter.outputObjectsListToFile(unique_dismatch,outputname + '_SAPDN_SAPPO_uniquedismatch','output/error/')
     fileWriter.outputObjectsListToFile(unique_more, outputname + "_SAPPO_mormath","output/error/")
 
+    sapdns_still = set()
+    for sapdn in sapdns:
+        if sapdn.Still_to_be_delivered_qty:
+            if int(sapdn.Still_to_be_delivered_qty) != 0:
+                sapdns_still.add(sapdn)
+
+    fileWriter.outputObjectsListToFile(sapdns_still, outputname+"_SAPD_With_SAPPO_StillToBeDelivery", outputpath)
+
     return sapdns
+
+
 
 
 
@@ -278,33 +306,106 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
 
     print("step_4_MixZtepoAndSapdn" + "-"*20 + "\n")
 
-    # build siteid-po-mat-qty dict
+    # dict with ztepo
+    zpo_spmq_dict = {}
+    zpo_nocm = set()
+    for zpo in ztepos:
+        if not zpo.ZTE_CM_No:
+            zpo_nocm.add(zpo)
+            if zpo.ZTE_Site_ID and zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty:
+                unique = (zpo.ZTE_Site_ID, zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
+                if unique not in zpo_spmq_dict:
+                    zpo_spmq_dict[unique] = set()
+                zpo_spmq_dict[unique].add(zpo)
+
+    print("zpo spmq dict", len(zpo_spmq_dict),"ZPO no-cm set", len(zpo_nocm))
+
+
+
+    if not outputname:
+        outputname = "Step_4"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
+
+
+    zpo_attrs = {
+        'ZTE_CM_No': u'5101531993',
+        'ZTE_Contract_No': None,
+        'ZTE_Origin_Mcode': u'50017038',
+        'ZTE_PO_Amount': u'1848',
+        'ZTE_PO_Nr': u'32012562',
+        'ZTE_Project': u'UMTS Swap',
+        'rowindex': u'1002'
+    }
+
+    sapdn_notin_zpos = set()
+    sapdn_zpo_onematch = set()
+    sapdn_zpo_morematch = set()
+    for sapdn in sapdns:
+        if sapdn.Equipment and sapdn.Purchasing_Document and sapdn.Material and sapdn.Order_Quantity:
+            unique = (sapdn.Equipment, sapdn.Purchasing_Document, sapdn.Material, sapdn.Order_Quantity)
+
+            if u"Reference_PO_Number" in sapdn.__dict__: # has ref po
+                unique_r = (sapdn.Equipment, sapdn.Reference_PO_Number, sapdn.Material, sapdn.Order_Quantity)
+            else:
+                unique_r = None
+
+            if unique in zpo_spmq_dict:
+                zpo_set = zpo_spmq_dict[unique]
+            elif unique not in zpo_spmq_dict and unique_r and unique_r in zpo_spmq_dict:
+                zpo_set = zpo_spmq_dict[unique_r]
+            else:
+                sapdn_notin_zpos.add(sapdn)
+                continue
+
+            if len(zpo_set) == 1:
+                sapdn_zpo_onematch.add(sapdn)
+                zpo = list(zpo_set)[0]
+                for k, v in zpo.__dict__.items():
+                    if k in zpo_attrs:
+                        sapdn.__dict__[k] = v
+
+            else:
+                sapdn_zpo_morematch.add(sapdn)
+                sapdn_zpo_morematch = sapdn_zpo_morematch.union(zpo_set)
+
+
+    print("ZPO AND SAPDN SPMQ ONE-ONE MATCH", len(sapdn_zpo_onematch))
+    print("SAPPO not in ZPO", len(sapdn_notin_zpos))
+    print("ZPO AND SAPDN SPMQ ONE-More MATCH", len(sapdn_zpo_morematch))
+
+    fileWriter.outputObjectsListToFile(sapdn_notin_zpos,outputname+"_sapdn_notin_zpos","output/error/")
+    fileWriter.outputObjectsListToFile(sapdn_zpo_morematch,outputname+"_sapdn_zpo_morematch","output/error/")
+    fileWriter.outputObjectsListToFile(sapdns,outputname+"_SAPDN_ALL",outputpath)
+
+    sapdn_with_zpo_set = set()
+    for sapdn in sapdns:
+        if "ZTE_PO_Nr" in sapdn.__dict__:
+            sapdn_with_zpo_set.add(sapdn)
+
+    fileWriter.outputObjectsListToFile(sapdn_with_zpo_set,outputname+"_SAPDN_With_ZPO",outputpath)
+
+    return sapdn_with_zpo_set
 
 
 
 
-
-
-
-
-
-def new_step2_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, outputpath = None,):
+def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, outputpath = None,):
     """
 
-    :param bmstatus: all bm92
+    :param projectname:
+    :param bmstatus:
     :param sapdns:
+    :param outputname:
+    :param outputpath:
     :return:
     """
-    bmstatus = copy.deepcopy(bmstatus)
-    sapdns = copy.deepcopy(sapdns)
 
+    print("\nstep_5_addBmstatusToSapdns" + '-'*20)
 
     #build bm_dict
     bmbs_dict = {}
     bsonly_dict = {}
-    bmonly_dict = {}
-
-    bmstatus = list(bmstatus)
 
     for bm in bmstatus:
         # add bmbs_dict
@@ -318,71 +419,73 @@ def new_step2_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None
             if bm.BS_FE not in bsonly_dict:
                 bsonly_dict[bm.BS_FE] = set()
             bsonly_dict[bm.BS_FE].add(bm)
-        # add bmonly:
-            if bm.BAUMASSNAHME_ID not in bmonly_dict:
-                bmonly_dict[bm.BAUMASSNAHME_ID] = set()
-                bmonly_dict[bm.BAUMASSNAHME_ID].add(bm)
-            else:
-                bmonly_dict.pop(bm.BAUMASSNAHME_ID)
 
 
-    print("BMBS dict", len(bmbs_dict),
-          "BSONLY dict", len(bsonly_dict),
-          "BMONLY dict", len(bmonly_dict)
+    print(
+        "BMBS dict", len(bmbs_dict),
+        "BSONLY dict", len(bsonly_dict),
     )
 
 
     bmbs_match = set()
     bsonly_match = set()
-    match = set()
+    match_set = set()
     nomatch = set()
+
+    bm_attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME', u'PRICING',u'NBNEU',
+              u'BAUMASSNAHMEVORLAGE',u'BAUMASSNAHMETYP',u'BESCHREIBUNG',
+    ]
 
     # do match
     for sapdn in sapdns:
-        bm0 = bmstatus[0]
-        for k, v in bm0.__dict__.items():
-            if k not in sapdn.__dict__:
-                sapdn.__dict__[k] = None
-
         # check if this sapdn has information
         if sapdn.Equipment and sapdn.NotesID:
             unique_bmbs = (sapdn.NotesID, sapdn.Equipment)
+
             # 1 check bmbs match
             if unique_bmbs in bmbs_dict:
                 bm_set = bmbs_dict[unique_bmbs]
+                # match only one
                 if len(bm_set) == 1:
                     bm = list(bm_set)[0]
                     for k, v in bm.__dict__.items():
-                        sapdn.__dict__[k] = v
+                        if k == 'IST92':
+                            sapdn.__dict__[k] = v
                     sapdn.MATCH_TYPE = "BM_BS"
                     bmbs_match.add(sapdn)
-                    match.add(sapdn)
+                    match_set.add(sapdn)
+                    sapdns.pop(sapdn)
                     continue
 
             # 2 check bsonly match
 
             elif unique_bmbs not in bmbs_dict and sapdn.Equipment in bsonly_dict:
                 bm_set = bsonly_dict[sapdn.Equipment]
+                # match only one site id
                 if len(bm_set) == 1:
                     bm = list(bm_set)[0]
                     for k, v in bm.__dict__.items():
-                        sapdn.__dict__[k] = v
+                        if k in bm_attris:
+                            sapdn.__dict__[k] = v
                     bsonly_match.add(sapdn)
                     sapdn.MATCH_TYPE = "BS_ONLY"
-                    match.add(sapdn)
+                    match_set.add(sapdn)
+                    sapdns.pop(sapdn)
                     continue
             else:
                 nomatch.add(sapdn)
 
     print("BMBS match", len(bmbs_match),
           "BSONLY match", len(bsonly_match),
-          "Total match", len(match),
-          "No match", len(nomatch)
+          "Total match", len(match_set),
+          "No match", len(nomatch),
+          "Rest SAPDNS", len(sapdns)
     )
 
 
     if not outputname:
-        outputname = "Step_2"
+        outputname = "Step_5"
     if not outputpath:
         outputpath = 'output/dn_maker/'
 
@@ -397,7 +500,7 @@ def new_step2_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None
     fileWriter.outputObjectsListToFile(nomatch,outputname + "_nomatch",'output/error/')
     fileWriter.outputObjectsListToFile(sapdns_with_bmid,outputname + "_sapdns_with_bmid",'output/error/')
 
-    fileWriter.outputObjectsListToFile(sapdns,outputname+'_SAPDN_WITHBMID', 'output/dn_maker/')
+    fileWriter.outputObjectsListToFile(sapdns,outputname+'_SAPDN_With_BMSTATUS', outputpath)
 
     print("ADD bmid to sapdn rate", len(sapdns_with_bmid), len(sapdns))
 
@@ -408,201 +511,32 @@ def new_step2_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None
 
 
 
-def new_step4_MixZteposIntoSapdns(projectname,ztepos, sapdns,outputname=None, outputpath = None,):
-    """
-
-    :param ztepos:
-    :param sapdns:
-    :return:
-    """
-
-    ztepos = copy.deepcopy(ztepos)
-    sapdns = copy.deepcopy(sapdns)
-
-    d_sappo = {u'SAP_Doc_Date': u'41800',
-     u'SAP_Item_of_PO': u'10',
-     u'SAP_Material': u'50016774',
-     u'SAP_Material_Description': u'ZTE. UMTS ZN000078  MCO BS8900B 3 RSU82,',
-     u'SAP_PO_Quantity': u'1',
-     u'SAP_PurchNo': u'32010557',
-     u'SAP_Reference_PO_Number': u'43098103'}
-
-    d_sapdn = {u'Deletion_Indicator': u'L',
-     u'Document_Date': u'40638',
-     u'Document_item': u'0',
-     u'Goods_recipient': None,
-     u'Item': u'10',
-     u'Material': u'50014172',
-     u'Order': u'50083852',
-     u'Order_Quantity': u'1',
-     u'Order_Unit': u'ST',
-     u'Purchasing_Document': u'32003539',
-     u'Purchasing_Info_Rec': u'5300116271',
-     u'SAP_Doc_Date': u'40638',
-     u'SAP_Item_of_PO': u'10',
-     u'SAP_Material': u'50014172',
-     u'SAP_Material_Description': u'ZTE DBS NodeB BS8700 DC, ZN000001',
-     u'SAP_PO_Quantity': u'1',
-     u'SAP_PurchNo': u'32003539',
-     u'SAP_Reference_PO_Number': None,
-     u'Short_Text': u'ZTE DBS NodeB BS8700 DC, ZN000001',
-     u'Still_to_be_delivered_qty': u'0'}
-
-
-
-    sap_refmq_dict = {}
-    sap_pmq_dict = {}
-    sap_bs_m_dict = {}
-    count = 0
-    for sapdn in sapdns:
-        if (sapdn.SAP_Reference_PO_Number and sapdn.Material and sapdn.Order_Quantity):
-            unique = (sapdn.SAP_Reference_PO_Number,sapdn.Material,sapdn.Order_Quantity)
-            if unique not in sap_refmq_dict:
-                sap_refmq_dict[unique] = set()
-            sap_refmq_dict[unique].add(sapdn)
-            count += 1
-
-        if (not sapdn.SAP_Reference_PO_Number
-            and sapdn.Purchasing_Document
-            and sapdn.Material
-            and sapdn.Order_Quantity
-        ):
-            unique = (sapdn.Purchasing_Document, sapdn.Material,sapdn.Order_Quantity)
-            if unique not in sap_pmq_dict:
-                sap_pmq_dict[unique] = set()
-            sap_pmq_dict[unique].add(sapdn)
-            count += 1
-        if sapdn.Equipment and sapdn.Material:
-            unique = (sapdn.Equipment, sapdn.Material)
-            if unique not in sap_bs_m_dict:
-                sap_bs_m_dict[unique] = set()
-            sap_bs_m_dict[unique].add(sapdn)
-
-    print("Refm_dict", len(sap_refmq_dict), "pm_dict", len(sap_pmq_dict), len(sapdns),
-          "Diff", len(sapdns)-count, len(sapdns)-len(sap_refmq_dict)-len(sap_pmq_dict)
-    )
 
 
 
 
-    zpo_d = {'Hidden': False,
-     'ZTE_CM_Date': u'40638',
-     'ZTE_CM_No': u'5101009596',
-     'ZTE_Contract_No': u'S4DE2009121802UMTP1',
-     'ZTE_Delivery_Date': u'40410',
-     'ZTE_Item_Code': None,
-     'ZTE_Material': u'50014172',
-     'ZTE_Origin_Mcode': u'50014172',
-     'ZTE_Origin_Qty': u'1',
-     'ZTE_PO_Amount': u'2000',
-     'ZTE_PO_Date': u'40371',
-     'ZTE_PO_Nr': u'32001158',
-     'ZTE_Product_Description': u'B8200 (2 Bpc) + 3XR8840 + 3XOLP(DC) + cable set for B8200/RRU/OLP',
-     'ZTE_Project': u'UMTS New',
-     'ZTE_Qty': u'1',
-     'ZTE_Remark': None,
-     'ZTE_Site_ID': u'18534033'}
-
-    # build ztepo dict
-    zpo_pmr_dict = {}
-
-    for zpo in ztepos:
-        if zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty:
-            unique = (zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
-            if unique not in zpo_pmr_dict:
-                zpo_pmr_dict[unique] = set()
-            zpo_pmr_dict[unique].add(zpo)
-
-    # do match
 
 
-    match = set()
-    zpo_nomatch = set()
-    morematch = set()
-    oneuniquematch  = set()
-    more_zpo = set()
-    more_sapdn = set()
-    onlyBsfeMatch = set()
-    for unique, zposet in zpo_pmr_dict.items():
-        # it's a normal po
-        if unique in sap_pmq_dict:
-            spo_set = sap_pmq_dict[unique]
-        elif unique in sap_refmq_dict and unique not in sap_pmq_dict :
-            spo_set = sap_refmq_dict[unique]
-        else:
-            spo_set = None
-
-        # if this unique has sappo
-        if spo_set and zposet:
-            # unique onlye
-            if len(spo_set) == len(zposet) == 1:
-                # one to one match
-                sapdn = list(spo_set)[0]
-                zpo = list(zposet)[0]
-                for k, v in zpo.__dict__.items():
-                    sapdn.__dict__[k] = v
-                oneuniquematch.add(sapdn)
-                match.add(sapdn)
-            else:
-                if len(spo_set) < len(zposet):
-                    #
-                    #  sap has less po, that means wrong zpo record
-                    more_zpo = more_zpo.union(zposet)
-                if len(spo_set) > len(zposet) and len(spo_set)>1 and len(zposet)>0:
-                    # sap has more po than zpolist
-                    # it means has more position
-                    spo_l = list(spo_set)
-                    zpo_l = list(zposet)
-                    zpo = zpo_l[0]
-                    for i in range(len(spo_l)):
-                        sapdn = spo_l[i]
-                        try:
-                            new_zpo = zpo_l[i]
-                        except Exception:
-                            new_zpo = zpo
-                        for k, v in new_zpo.__dict__.items():
-                            sapdn.__dict__[k] = v
-                        morematch.add(sapdn)
-                        match.add(sapdn)
-
-        else:
-            # if this ztepo set has not match with sapdn set
-            # we check it with the sapdn_bsfe-dict to match every ztp's site id
-            # using the Only one bsfe to match
-            for zpo in list(zposet):
-                if zpo.ZTE_Site_ID and zpo.ZTE_Material:
-                    unique = (zpo.ZTE_Site_ID, zpo.ZTE_Material)
-                    if unique in sap_bs_m_dict:
-                        sap_set = sap_bs_m_dict[unique]
-                        for sapdn in list(sap_set):
-                            for k,v in zpo.__dict__.items():
-                                sapdn.__dict__[k] = v
-                            match.add(sapdn)
-                            onlyBsfeMatch.add(sapdn)
-                else:
-                    zpo_nomatch.add(zpo)
-
-    print("One-unique match", len(oneuniquematch), len(sapdns), len(ztepos),
-          "MoreSAPPO-match", len(morematch),
-          "Total Match", len(match), len(sapdns),
-          "Only BSFE match", len(onlyBsfeMatch), len(sapdns)
-    )
 
 
-    if not outputname:
-        outputname = "Step_4"
-    if not outputpath:
-        outputpath = 'output/dn_maker/'
 
-    if projectname:
-        outputname = projectname + "_" + outputname
 
-    fileWriter.outputObjectsListToFile(zpo_nomatch,outputname +"_ZPO_nomatch","output/error/")
-    fileWriter.outputObjectsListToFile(list(more_sapdn),outputname+"_More_SAPDN","output/error/")
-    fileWriter.outputObjectsListToFile(list(more_zpo),outputname+"_More_ZTEPO","output/error/")
-    fileWriter.outputObjectsListToFile(list(match),outputname+"_Matach_taotal",outputpath)
 
-    return match
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

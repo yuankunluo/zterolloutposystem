@@ -49,6 +49,11 @@ class Record(object):
             else:
                 self.__dict__[a] = None
 
+    def add_newAttrs(self, newAttrDict):
+        for k, v in newAttrDict.items():
+            if k not in self.__dict__:
+                self.__setattr__(k, v)
+
 
 class DeliveryRecord(Record):
     pass
@@ -275,42 +280,18 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
         rowObjList.extend(rowObjs)
 
     # addint to list
-    bm_list = []
-    bm_notall = set()
+    bm_set = set()
     for row in rowObjList:
         bmobj = BMStatusRecord(attris)
         for k, v in row.__dict__.items():
             if k in attris:
                 bmobj.__setattr__(k,fileReader.clearUnicode(v))
         bmobj.BM_SOURCE = row.Source
-        bm_list.append(bmobj)
+        bm_set.add(bmobj)
 
-    print("Read BMs", len(bm_list))
 
-    bm_dict = {}
-    updateCount = 0
-    for bm in bm_list:
-        if bm.BAUMASSNAHME_ID and bm.BS_FE and bm.NBNEU:
-            unique = (bm.BAUMASSNAHME_ID, bm.BS_FE, bm.NBNEU)
-            if unique not in bm_dict:
-                bm_dict[unique] = bm
-            else:
-                # do some exchange
-                oldbm = bm_dict[unique]
-                if bm.IST92 and not oldbm.IST92:
-                    bm_dict[unique] = bm
-                    updateCount += 1
-        else:
-            bm_notall.add(bm)
 
-    result = set()
-    for k, v in bm_dict.items():
-        result.add(v)
-
-    print("BM rate", len(bm_list), len(rowObjList),
-          "BM ok rate", len(result),"Update", updateCount,
-          "BM Not all infomation", len(bm_notall)
-    )
+    print("BM rate", len(bm_set), len(rowObjList))
 
     if not outputfilename:
         outputfilename = "Raw_Bmstatus"
@@ -318,15 +299,15 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
         outputpath = "output/dn_maker/"
 
     if bmprojectname:
-        outputfilename = bmprojectname + "_" + outputfilename
+        outputfilename = outputfilename+"_"+ bmprojectname
 
 
 
-    fileWriter.outputObjectsListToFile(bm_list,outputfilename,outputpath)
-    storeRawData(result,outputfilename,'output/raw/')
-    fileWriter.outputObjectsListToFile(bm_notall,outputfilename,'output/error/')
+    fileWriter.outputObjectsListToFile(bm_set,outputfilename,outputpath)
+    storeRawData(bm_set,outputfilename,'output/raw/')
 
-    return result
+    return bm_set
+
 
 
 def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_me5a/", output=True):
