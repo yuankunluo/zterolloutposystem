@@ -453,7 +453,6 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
                 bm_set = bsonly_dict[sapdn.Equipment]
                 bsonly = True
             else:
-                nomatch_set.add(sapdn)
                 continue
 
             if len(bm_set) == 1:
@@ -504,7 +503,6 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
     fileWriter.outputObjectsListToFile(bmbsmatch_set,outputname + "_bmbs_match",'output/error/')
     fileWriter.outputObjectsListToFile(bsonlymatch_set,outputname + '_bsonly_match','output/error/')
-    fileWriter.outputObjectsListToFile(nomatch_set,outputname + "_nomatch",'output/error/')
     fileWriter.outputObjectsListToFile(allmatch_set,outputname+'_SAPDN_BMSTATUS_matched_all', outputpath)
     fileWriter.outputObjectsListToFile(more_bmidmatch_set,outputname + "_more_bmidmatch",'output/error/')
 
