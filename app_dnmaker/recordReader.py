@@ -247,7 +247,7 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
 
 
-def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
+def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/infra_bmstatus/',
                                 outputfilename=None, outputpath = None):
     """
     Read bmstatus in path

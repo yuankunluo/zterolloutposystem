@@ -52,10 +52,10 @@ def startDoProjectBMMatchToSapdns(sapdns):
 
     projectDict = {
         # 'BBU': 'input/infra_bm_bbu/',
-        'BPK': 'input/infra_bm_bpk/',
-        'LTE': 'input/infra_bm_lte/',
-        'RRUSWAP': 'input/infra_bm_rruswap/',
-        'UMTSNEW': 'input/infra_bm_umtsnew/',
+        'BPK': 'input/infra_bmstatus/infra_bm_bpk/',
+        'LTE': 'input/infra_bmstatus/infra_bm_lte/',
+        'RRUSWAP': 'input/infra_bmstatus/infra_bm_rruswap/',
+        'UMTSNEW': 'input/infra_bmstatus/infra_bm_umtsnew/',
     }
 
     for project, bmpath in projectDict.items():
@@ -420,6 +420,7 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
+              u'BM_SOURCE'
     ]
 
     nomatch_set = set()
