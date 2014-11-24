@@ -17,7 +17,6 @@ class GermanUpdateRecord(Record):
 
 
 
-
     def __init__(self, bm, german):
         update_attr = [u'BAUMASSNAHME_ID',u'BS_FE',u'Sheetname',u'NBNEU',u'PRICING']
 

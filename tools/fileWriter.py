@@ -136,7 +136,7 @@ def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_REPORT_', pat
               'Original_Warehouse', u'no', u'packageno',
               'Required_date_of_Arrival',
               u'bomno', u'detaildescription', u'qty', u'unit',u'remark',
-              'Destination_Address','Source',
+              'Destination_Address','Source','Filename'
               #'Yearnr', 'Weeknr','Weekdaynr','Date'
     ]
 

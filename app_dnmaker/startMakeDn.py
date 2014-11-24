@@ -420,7 +420,7 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
-              u'BM_SOURCE'
+              # u'BM_SOURCE'
     ]
 
     nomatch_set = set()
