@@ -111,16 +111,20 @@ def __readAllBookFilesInPath(path, recursive = False):
                 else:
                     if re.match(reg, fname.lower(), re.IGNORECASE):
                         book_path = path + '/' + fname
-                        book = open_workbook(book_path)
-                        bookCount += 1
-                        print("Open Workbook", fname)
-                        book.source = book_path
-                        reg_f = '\.xls$|\.xlsx$'
-                        fname = re.sub(reg_f,'',fname)
-                        book.filename = cleanString(fname)
-                        for s in book.sheets():
-                            s.source = book.source
-                        books.append(book)
+                        try:
+                            book = open_workbook(book_path)
+                            bookCount += 1
+                            # print("Open Workbook", fname)
+                            book.source = book_path
+                            reg_f = '\.xls$|\.xlsx$'
+                            fname = re.sub(reg_f,'',fname)
+                            book.filename = cleanString(fname)
+                            for s in book.sheets():
+                                s.source = book.source
+                            books.append(book)
+                        except Exception:
+                            print("Error: reading xlsx file", book_path)
+                            continue
             print("Read %d excels files"%(bookCount))
             return books
         else:
@@ -136,14 +140,18 @@ def __readAllBookFilesInPath(path, recursive = False):
                     if re.match(reg, file.lower(), re.IGNORECASE):
                         book_path = root +'/' + file
                         #print(book_path)
-                        book = open_workbook(book_path)
-                        bookCount += 1
-                        print("Open Workbook", file)
-                        book.source = book_path
-                        reg_f = '\.xls$|\.xlsx$'
-                        file = re.sub(reg_f,'',file)
-                        book.filename = cleanString(file)
-                        books.append(book)
+                        try:
+                            book = open_workbook(book_path)
+                            bookCount += 1
+                            # print("Open Workbook", file)
+                            book.source = book_path
+                            reg_f = '\.xls$|\.xlsx$'
+                            file = re.sub(reg_f,'',file)
+                            book.filename = cleanString(file)
+                            books.append(book)
+                        except Exception:
+                            print("Error reading xls file", book_path)
+                            continue
         print("Read %d excels files"%(bookCount))
         return books
 

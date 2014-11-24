@@ -62,7 +62,7 @@ def goThroughDirectory(path , weekly = False, yearNr = None,
             dng = DNGE(s.filename)
             head = readDngeHeader(s)
             contents = readDngeContent(s)
-            print("Read %d records from sheet: %s"%(len(contents), s.filename))
+            #print("Read %d records from sheet: %s"%(len(contents), s.filename))
             dng.header = head
             dng.contents = contents
             dngs.append(dng)
