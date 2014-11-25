@@ -28,10 +28,9 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
         print("None object can not be wrote")
         return
 
-    try:
-        objects.sort()
-    except Exception:
-        print("***Error:Objects can not be sorted")
+
+    objects.sort()
+
 
     book = Workbook()
     sheet = book.add_sheet('Overview')
@@ -44,6 +43,10 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
         HEADER.sort()
     else:
         HEADER = header
+
+    if 'Key_Attr' in HEADER:
+        HEADER.remove('Key_Attr')
+
     rowindex = 0
     for colx in range(len(HEADER)):
         sheet.write(0, colx, HEADER[colx])
@@ -88,10 +91,21 @@ def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
 
 def __writeObjectInoSheetOfBook(objects ,sheetname , book):
 
-    try:
-        objects.sort()
-    except Exception:
-        print("***Error:Objects can not be sorted")
+
+    if type(objects) is not list:
+        try:
+            objects  = list(objects)
+        except Exception:
+            print("Can not cover objects into list")
+            return book
+
+    if objects is None or len(objects) == 0:
+        print("None object can not be wrote")
+        return book
+
+
+    objects.sort()
+
 
     sheet = book.add_sheet(sheetname)
     HEADER = []
@@ -99,6 +113,8 @@ def __writeObjectInoSheetOfBook(objects ,sheetname , book):
         HEADER.extend(obj.__dict__.keys())
     HEADER = set(HEADER)
     HEADER = list(HEADER)
+    if 'Key_Attr' in HEADER:
+        HEADER.remove('Key_Attr')
     HEADER.sort()
 
     rowindex = 0
@@ -286,3 +302,5 @@ def outputListOfTupleToFile(listofTuple, filename, path, header=None):
 def getNowAsString(formatStr = "%Y%m%d_%H%M"):
     tims = datetime.datetime.now().strftime(formatStr)
     return tims
+
+

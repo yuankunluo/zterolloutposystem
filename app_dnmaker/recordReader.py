@@ -35,21 +35,23 @@ class Record(object):
         return hash(self.__key())
 
     def __cmp__(self, other):
-        if self.Key_Attr in other.__dict__:
-            if self.Key_Attr > other.Key_Attr:
-                return 1
-            if self.Key_Attr < other.Key_Attr:
-                return -1
-            if self.Key_Attr == other.Key_Attr:
-                return 0
+        if hasattr(other, 'Key_Attr'):
+            return cmp(self.__getKeyAttr(),other.__getKeyAttr())
+        else:
+            return -1
 
-    def __init__(self, attriList, key_attr,prefix=None):
-        self.Key_Attr = key_attr
+
+    def __init__(self, attriList, key_attr ,prefix=None):
         for a in attriList:
             if prefix:
                 self.__dict__[prefix+"_"+a] = None
             else:
                 self.__dict__[a] = None
+        self.Key_Attr = key_attr
+
+
+    def __getKeyAttr(self):
+        return self.__dict__[self.Key_Attr]
 
     def add_newAttrs(self, newAttrDict):
         for k, v in newAttrDict.items():
@@ -85,6 +87,7 @@ class BMStatus2(Record):
 
 class PurchaseRequisitionRecord(Record):
     pass
+
 
 
 
@@ -336,7 +339,7 @@ def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_
     pr_set = set()
     # cover rows as bmboject
     for row in drRows:
-        prObj = PurchaseRequisitionRecord(attris,u'Purchase_Requisition')
+        prObj = PurchaseRequisitionRecord(attris,u'Purchase_Order')
         for k, v in row.__dict__.items():
             if k in attris:
                 prObj.__setattr__(k,fileReader.clearUnicode(v))
@@ -382,14 +385,7 @@ def storeRawData(object, filename, path='output/raw/'):
     print("Store Objects in " +  path + filename +'.raw')
 
 
-# def sort_with_attrs(objects, key):
-#
-#     if not isinstance(objects, list):
-#         objects = list(objects)
-#
-#     objects.sort(key=lambda x: x.__dict__[key], reverse=False)
-#
-#     return objects
+
 
 
 
