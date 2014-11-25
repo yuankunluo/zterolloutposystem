@@ -42,12 +42,21 @@ class Record(object):
 
 
     def __init__(self, attriList, key_attr ,prefix=None):
-        for a in attriList:
-            if prefix:
-                self.__dict__[prefix+"_"+a] = None
-            else:
-                self.__dict__[a] = None
+        if isinstance(attriList, list):
+            for a in attriList:
+                if prefix:
+                    self.__dict__[prefix+"_"+a] = None
+                else:
+                    self.__dict__[a] = None
+        if isinstance(attriList, dict):
+            for k, v in attriList:
+                if prefix:
+                    self.__dict__[prefix+"_"+k] = v
+                else:
+                    self.__dict__[k] = v
         self.Key_Attr = key_attr
+
+
 
 
     def __getKeyAttr(self):
@@ -277,16 +286,18 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
               u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'DO_TYP_NAME',
     ]
     # test if this is a good bm status list
-    for sheet in sheets:
-        header = fileReader.getHeaderFromSheet(sheet)
-        if __contains(attris, header):
-            bm_sheets.append(sheet)
-        else:
-            print("Error: No BM_STATUS Header", sheet.name, sheet.filename)
+    # for sheet in sheets:
+    #     header = fileReader.getHeaderFromSheet(sheet)
+    #     if __contains(attris, header):
+    #         bm_sheets.append(sheet)
+    #     else:
+    #         print("Error: No BM_STATUS Header", sheet.name, sheet.filename)
+    #
+    # for bm_sheet in bm_sheets:
+    #     rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
+    #     rowObjList.extend(rowObjs)
 
-    for bm_sheet in bm_sheets:
-        rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
-        rowObjList.extend(rowObjs)
+    rowObjList = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
 
     # addint to list
     bm_set = set()

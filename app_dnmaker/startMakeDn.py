@@ -211,6 +211,7 @@ def step_3_AddSappToSapdns(sappos, sapdns,outputname=None, outputpath = None,):
 
     print("step_3_AddSappToSapdns" + "-"*20 + "\n")
 
+
     # build P_I_M_Q key
     pimq_dict = {}
     for spo in sappos:
@@ -279,6 +280,11 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
     """
 
     print("step_4_MixZtepoAndSapdn" + "-"*20 + "\n")
+
+    c_ztepos = copy.deepcopy(ztepos)
+    c_sapdns = copy.deepcopy(sapdns)
+
+    findDisMatchWithZteposAndSapdns(c_ztepos, c_sapdns)
 
     # dict with ztepo
     zpo_spmq_dict = {}
@@ -515,6 +521,15 @@ def step_5_addBmstatusToSapdns(bmstatus, sapdns, outputname=None, outputpath = N
 
 
 
+def findDisMatchWithZteposAndSapdns(ztepos, sapdns):
+    """
+
+    :param ztepos:
+    :param sapdns:
+    :return:
+    """
+    # do po dict po: (m, qty)
+    pass
 
 
 

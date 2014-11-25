@@ -77,7 +77,7 @@ def step1_getAllGermanProjectRecordsInPath(inputPath="input/germany_summary/", o
     for row in rowObjecs:
         # read right sheet name only
         if row.Sheetname in SHEET_NAME:
-            gmsObj = GermanReportRecord()
+            gmsObj = GermanReportRecord(HEADER_REGX.keys(),u'BAUMASSNAHME_ID' )
             # init attributs
             for k in HEADER_REGX.keys():
                 gmsObj.__dict__[k] = None

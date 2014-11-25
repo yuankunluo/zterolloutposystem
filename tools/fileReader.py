@@ -88,7 +88,7 @@ def __readAllBookFilesInBook(path):
 
 
 
-def __readAllBookFilesInPath(path, recursive = False):
+def readAllBookFilesInPath(path, recursive = False):
     """
     Read all file from path
 
@@ -421,7 +421,7 @@ def cleanString(value):
 # ---------------- apis --------------------------------
 
 def getAllRowObjectInPath(path, recursive = False):
-    books = __readAllBookFilesInPath(path, recursive)
+    books = readAllBookFilesInPath(path, recursive)
     sheets = []
     for b in books:
         s = __readAllSheetsWithHeaderInBook(b)
@@ -457,7 +457,7 @@ def getAllHeadersFromBookInPath(path, recursive = False):
     :return:
     """
     headers_list = []
-    books = __readAllBookFilesInPath(path, recursive)
+    books = readAllBookFilesInPath(path, recursive)
     for b in books:
         header = __readAllHeadersFromBook(b)
         headers_list.extend(header)
@@ -468,7 +468,7 @@ def getAllHeadersFromBookInPath(path, recursive = False):
 
 
 def getAllSheetsInPath(path, recursive = False):
-    books = __readAllBookFilesInPath(path, recursive)
+    books = readAllBookFilesInPath(path, recursive)
     sheets = []
     for b in books:
         sheets.extend(__readAllSheetsFromBook(b))
