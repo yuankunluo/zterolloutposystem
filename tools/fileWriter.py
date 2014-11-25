@@ -53,6 +53,9 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
     for obj in objects:
         for colx in range(len(HEADER)):
             try:
+                value = obj.__dict__[HEADER[colx]]
+                if isinstance(value, list):
+                    value = ";".join(value)
                 sheet.write(rowindex+1, colx, obj.__dict__[HEADER[colx]])
             except Exception:
                 continue

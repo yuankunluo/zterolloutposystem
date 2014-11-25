@@ -49,7 +49,7 @@ class Record(object):
                 else:
                     self.__dict__[a] = None
         if isinstance(attriList, dict):
-            for k, v in attriList:
+            for k, v in attriList.items():
                 if prefix:
                     self.__dict__[prefix+"_"+k] = v
                 else:
@@ -297,7 +297,7 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
     #     rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
     #     rowObjList.extend(rowObjs)
 
-    rowObjList = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
+    rowObjList = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(inputpath))
 
     # addint to list
     bm_set = set()

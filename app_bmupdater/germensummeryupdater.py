@@ -32,6 +32,9 @@ class GermanUpdateRecord(Record):
 
 
 
+
+
+
 def step1_getAllGermanProjectRecordsInPath(inputPath="input/germany_summary/", outputFilename=None, outputPath = None):
     """
 
