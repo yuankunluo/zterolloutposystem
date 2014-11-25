@@ -247,7 +247,7 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
 
 
-def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/infra_bmstatus/',
+def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
                                 outputfilename=None, outputpath = None):
     """
     Read bmstatus in path
@@ -262,8 +262,10 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/infra_bmstatus/'
     bm_sheets = []
     #get all sheets in path
     sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'PRICING',
+              u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
+              u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'DO_TYP_NAME',
     ]
     # test if this is a good bm status list
     for sheet in sheets:
@@ -284,7 +286,6 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/infra_bmstatus/'
         for k, v in row.__dict__.items():
             if k in attris:
                 bmobj.__setattr__(k,fileReader.clearUnicode(v))
-        bmobj.BM_SOURCE = row.Source
         bm_set.add(bmobj)
 
 
@@ -295,10 +296,6 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/infra_bmstatus/'
         outputfilename = "Raw_Bmstatus"
     if not outputpath:
         outputpath = "output/dn_maker/"
-
-    if bmprojectname:
-        outputfilename = outputfilename+"_"+ bmprojectname
-
 
 
     fileWriter.outputObjectsListToFile(bm_set,outputfilename,outputpath)

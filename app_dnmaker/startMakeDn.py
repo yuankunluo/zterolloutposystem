@@ -48,26 +48,6 @@ def doMatch(raw_dict):
 
     return result4
 
-def startDoProjectBMMatchToSapdns(sapdns):
-
-    projectDict = {
-        # 'BBU': 'input/infra_bm_bbu/',
-        'BPK': 'input/infra_bmstatus/infra_bm_bpk/',
-        'LTE': 'input/infra_bmstatus/infra_bm_lte/',
-        'RRUSWAP': 'input/infra_bmstatus/infra_bm_rruswap/',
-        'UMTSNEW': 'input/infra_bmstatus/infra_bm_umtsnew/',
-    }
-
-    for project, bmpath in projectDict.items():
-
-        bmstatus = recordReader.get_AllBMStatusRecordInPath(project, bmpath)
-        sapdns = step_5_addBmstatusToSapdns(project, bmstatus, sapdns)
-
-
-
-    fileWriter.outputObjectsListToFile(sapdns,"Step_6_SAPDN_Nomatch","output/dn_maker/")
-
-    return sapdns
 
 
 
@@ -288,8 +268,6 @@ def step_3_AddSappToSapdns(sappos, sapdns,outputname=None, outputpath = None,):
 
 
 
-
-
 def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,):
     """
 
@@ -383,7 +361,7 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
 
 
 
-def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, outputpath = None,):
+def step_5_addBmstatusToSapdns(bmstatus, sapdns, outputname=None, outputpath = None,):
     """
 
     :param projectname:
@@ -395,6 +373,24 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
     """
 
     print("\nstep_5_addBmstatusToSapdns" + '-'*20)
+
+    d = {u'2Mbit-CE-Erweiterung',
+        u'Erweiterung 2nd Carrier UMTS',
+        u'Neues NE',
+        u'Neues NE LTE',
+        u'Systemtechnikwechsel',
+        u'TRX/CE-Abr\xfcstung',
+        u'Upgrade Systemtechnik'
+    }
+
+
+    bm_vorlages_dict = {
+        'BPK':[u'2Mbit-CE-Erweiterung',u'Erweiterung 2nd Carrier UMTS',
+               u'TRX/CE-Abr\xfcstung',u'Upgrade Systemtechnik'],
+        'SWAP':[u'Systemtechnikwechsel'],
+        'LTE_NEW':[u'Neues NE LTE',],
+        'UNMT_NEW':[u'Neues NE',]
+    }
 
     #build bm_dict
     bmbs_dict = {}
@@ -420,7 +416,7 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
-              # u'BM_SOURCE'
+              u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'PRICING',
     ]
 
     nomatch_set = set()
@@ -487,15 +483,30 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
     if not outputpath:
         outputpath = 'output/dn_maker/'
 
-    if projectname:
-        outputname = outputname + '_' + projectname
+
+    # make a output dict with projectname-matchedsapdn
+    output_dict = {}
+
+    # make a new dict to output
+    for sapdn in allmatch_set:
+        if sapdn.BAUMASSNAHMEVORLAGE:
+            for proname, vorlages in bm_vorlages_dict.items():
+                if sapdn.BAUMASSNAHMEVORLAGE in vorlages:
+                    if proname not in output_dict:
+                        output_dict[proname] = set()
+                    output_dict[proname].add(sapdn)
+
+    # output dict
+    for proname, matchsapdns in output_dict.items():
+        fileWriter.outputObjectsListToFile(matchsapdns,outputname +"_SAPDN_BM_Matched" + "_" + proname,outputpath)
 
 
+    # output error
     fileWriter.outputObjectsListToFile(bmbsmatch_set,outputname + "_bmbs_match",'output/error/')
     fileWriter.outputObjectsListToFile(bsonlymatch_set,outputname + '_bsonly_match','output/error/')
-    fileWriter.outputObjectsListToFile(allmatch_set,outputname+'_SAPDN_BMSTATUS_matched_all', outputpath)
     fileWriter.outputObjectsListToFile(more_bmidmatch_set,outputname + "_more_bmidmatch",'output/error/')
-
+    # output no matched sapdn
+    fileWriter.outputObjectsListToFile(new_sapdns,outputname+"_SAPDN_DISMATCH",outputpath)
     print("ADD bmid to sapdn rate", len(allmatch_set), len(sapdns))
 
     return new_sapdns
