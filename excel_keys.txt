@@ -57,3 +57,22 @@ u'Equipment': u'17531337',
 u'NotesID': u'201661552', 
 u'Order': u'50208399'}
 
+
+
+list(bmstatus)[0].__dict__
+Out[27]:
+{u'BAUMASSNAHMEVORLAGE': u'Upgrade Systemtechnik',
+ u'BAUMASSNAHME_ID': u'201705559',
+ u'BESCHREIBUNG': u'Abr\xfcstung BPK 4 -> 2',
+ u'BS_FE': u'16532264',
+ u'DO_TYP_NAME': u'Node B',
+ u'GEMEINDE_NAME': u'Bonn',
+ u'IST100': u'41883',
+ u'IST21': u'41850',
+ u'IST26': u'41858',
+ u'IST82': u'41879',
+ u'IST92': u'41879',
+ u'NBNEU': u'NW',
+ u'PLZ': u'53129',
+ u'PRICING': u'X28',
+ u'STRASSE': u'Rheinweg 154'}

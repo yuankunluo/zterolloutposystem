@@ -283,21 +283,11 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
     # dict with ztepo
     zpo_spmq_dict = {}
     for zpo in ztepos:
-
         if zpo.ZTE_Site_ID and zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty:
             unique = (zpo.ZTE_Site_ID, zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
             if unique not in zpo_spmq_dict:
                 zpo_spmq_dict[unique] = set()
             zpo_spmq_dict[unique].add(zpo)
-
-
-
-
-    if not outputname:
-        outputname = "Step_4"
-    if not outputpath:
-        outputpath = 'output/dn_maker/'
-
 
     zpo_attrs = {
         'ZTE_CM_No': u'5101531993',
@@ -321,13 +311,14 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
             else:
                 unique_r = None
 
-            if unique in zpo_spmq_dict:
-                zpo_set = zpo_spmq_dict[unique]
-            elif unique not in zpo_spmq_dict and unique_r and unique_r in zpo_spmq_dict:
-                zpo_set = zpo_spmq_dict[unique_r]
-            else:
+
+            if unique not in zpo_spmq_dict and unique_r not in zpo_spmq_dict:
                 sapdn_notin_zpos.add(sapdn)
                 continue
+            elif unique in zpo_spmq_dict and unique_r not in zpo_spmq_dict:
+                zpo_set = zpo_spmq_dict[unique]
+            else:
+                zpo_set = zpo_spmq_dict[unique_r]
 
             if len(zpo_set) == 1:
                 sapdn_zpo_onematch.add(sapdn)
@@ -341,9 +332,17 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
                 sapdn_zpo_morematch = sapdn_zpo_morematch.union(zpo_set)
 
 
+
+
     print("ZPO AND SAPDN SPMQ ONE-ONE MATCH", len(sapdn_zpo_onematch))
     print("SAPPO not in ZPO", len(sapdn_notin_zpos))
     print("ZPO AND SAPDN SPMQ ONE-More MATCH", len(sapdn_zpo_morematch))
+
+    if not outputname:
+        outputname = "Step_4"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
+
 
     fileWriter.outputObjectsListToFile(sapdn_notin_zpos,outputname+"_sapdn_notin_zpos","output/error/")
     fileWriter.outputObjectsListToFile(sapdn_zpo_morematch,outputname+"_sapdn_zpo_morematch","output/error/")
@@ -353,6 +352,7 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
     for sapdn in sapdns:
         if "ZTE_PO_Nr" in sapdn.__dict__:
             sapdn_with_zpo_set.add(sapdn)
+
 
     fileWriter.outputObjectsListToFile(sapdn_with_zpo_set,outputname+"_SAPDN_With_ZPO",outputpath)
 

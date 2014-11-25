@@ -28,6 +28,11 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
         print("None object can not be wrote")
         return
 
+    try:
+        objects.sort()
+    except Exception:
+        print("***Error:Objects can not be sorted")
+
     book = Workbook()
     sheet = book.add_sheet('Overview')
     if header == None:
@@ -82,6 +87,11 @@ def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
 
 
 def __writeObjectInoSheetOfBook(objects ,sheetname , book):
+
+    try:
+        objects.sort()
+    except Exception:
+        print("***Error:Objects can not be sorted")
 
     sheet = book.add_sheet(sheetname)
     HEADER = []
