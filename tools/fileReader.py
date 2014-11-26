@@ -152,7 +152,8 @@ def readAllBookFilesInPath(path, recursive = False):
                         except Exception:
                             print("Error reading xls file", book_path)
                             continue
-        # print("Read %d excels files"%(bookCount))
+
+        print("Read %d excels files"%(bookCount))
         return books
 
 
