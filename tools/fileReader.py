@@ -394,7 +394,7 @@ def clearUnicode(value):
     value = re.sub(reg,'',value)
     return value
 
-def cleanString(value):
+def cleanString(value, replaceblank=False):
     """
     Clean the string, just keep the alphabet and number.
 
@@ -415,6 +415,9 @@ def cleanString(value):
     value = re.sub('[()]','',value) # ()
     # split string using blank
     value = re.split('\s+', value)
+    if replaceblank:
+        return "".join(value)
+
     return ' '.join(value)
 
 

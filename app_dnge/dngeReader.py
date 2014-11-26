@@ -33,7 +33,17 @@ class DNGEHeader(object):
 
 class DNGEContentRecord(object):
 
-    pass
+    def __init__(self):
+        self.No = None
+        self.PackageNo = None
+        self.Detail_Description = None
+        self.QTY = None
+        self.UNIT = None
+        self.Volume = None
+        self.BMID = None
+        self.NEID = None
+        self.Remark = None
+        self.BomNr = None
 
 # -------------------------
 
@@ -57,38 +67,44 @@ def goThroughDirectory(path , weekly = False, yearNr = None,
 
     sheets = __getRidoffEmptySheet(sheets)
 
+    print("Read sheets count", len(sheets))
+
+    heads = set()
     for s in sheets:
-        try:
-            dng = DNGE(s.filename)
-            head = readDngeHeader(s)
-            contents = readDngeContent(s)
-            #print("Read %d records from sheet: %s"%(len(contents), s.filename))
-            dng.header = head
-            dng.contents = contents
-            dngs.append(dng)
-        except Exception:
-            print("Error reading Sheet", s.filename, s.sheetname)
+        # try:
+        dng = DNGE(s.filename)
+        head = readDngeHeader(s)
+        # print(head.__dict__)
+        contents = readDngeContent2(s)
+        for c in contents:
+            heads.add(c)
+        # print("Read %d records from sheet: %s"%(len(contents), s.filename))
+        # dng.header = head
+        # dng.contents = contents
+        # dngs.append(dng)
+        # # except Exception:
+        # #     print("Error reading Sheet", s.filename, s.sheetname)
 
+    return heads
 
-
-    # prepare for writing
-    dng_records = __prepareFoWriting(dngs)
-
-    if date:
-        date = unicode(date)
-        dng_records = [dng for dng in dng_records if re.match('.*'+date+'.*', dng.Date)]
-    if weekNr and yearNr and weekDayNr:
-        dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr and dng.Yearnr == yearNr and dng.Weekdaynr == weekDayNr]
-    if weekNr and yearNr:
-        dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr and dng.Yearnr == yearNr]
-    if weekNr:
-        dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr]
-
-
-    if output:
-        # writing file
-        fileWriter.outputDngeReport(dng_records, weekly)
-    return dng_records
+    # # prepare for writing
+    # dng_records = __prepareFoWriting(dngs)
+    #
+    # if date:
+    #     date = unicode(date)
+    #     dng_records = [dng for dng in dng_records if re.match('.*'+date+'.*', dng.Date)]
+    # if weekNr and yearNr and weekDayNr:
+    #     dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr and dng.Yearnr == yearNr and dng.Weekdaynr == weekDayNr]
+    # if weekNr and yearNr:
+    #     dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr and dng.Yearnr == yearNr]
+    # if weekNr:
+    #     dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr]
+    #
+    #
+    # if output:
+    #     # writing file
+    #     fileWriter.outputDngeReport(dng_records, weekly)
+    # return dng_records
 
 
 def __prepareFoWriting(dngs):
@@ -157,7 +173,7 @@ def readDngeHeader(sheet):
         'Phone_NO1': ['G3','J3'],
         'Phone_NO2': ['G4','J4'],
         'Carrier': ['G5'],
-        'SITE_ID': ['G6','H6','I6','J6'],
+        'SITE_ID': ['G6','H6'],
         'Destination_Address': ['C7'],
         'Region': ['J7'],
     }
@@ -185,10 +201,48 @@ def readDngeHeader(sheet):
             print("Error", k, value_list)
         Header.__dict__[k] = value
 
+    # double checking
+    Header.SITE_ID = Header.SITE_ID[:8]
+
     Header.Yearnr, Header.Weeknr, Header.Weekdaynr , Header.Date = __getDngeYearNrWeekNrWeekdayDatestringFromSheet(sheet)
     Header.Source = sheet.source
     Header.Filename = sheet.filename
     return Header
+
+
+def readDngeContent2(sheet):
+    """
+
+    :param sheet:
+    :return:
+    """
+    regx_dict = {
+        "No":"no|No\.",
+        "PackageNo":"PackageNo",
+        "Detail_Description":"DetailDescription",
+        "QTY":"QTY",
+        "UNIT":"UNIT",
+        "Volume":"Volume",
+        "BMID":"BMID",
+        "NEID":"NEID",
+        "Remark":"Remark",
+        "BomNr":"BomNr",
+    }
+
+    stop_reg = ".*(attention.*all the information with mark).*|.*(Approved by).*|Approved"
+
+    header_row = [fileReader.cleanString(fileReader.clearUnicode(c.value), replaceblank=True) for c in sheet.row(7)]
+
+    for rowx in range(8, sheet.nrows):
+        cells = [fileReader.cleanString(fileReader.clearUnicode(c.value)) for c in sheet.row(rowx) if c.value]
+        cells_str = "".join([x for x in cells if x])
+        # test if this the end of correct
+        if re.match(stop_reg, cells_str, re.IGNORECASE):
+            print("Find stop string", cells_str)
+            break
+        print("Cell", cells_str)
+    return header_row
+
 
 
 
@@ -219,9 +273,9 @@ def readDngeContent(sheet):
             continue
         r_list = [unicode(x.value).lower() for x in sheet.row(rowx)]
         r_string = ''.join(r_list)
-        reg_attention = r'attention.*all the information with mark'
+        reg_attention = r'.*(attention.*all the information with mark).*|.*(Approved by).*'
         # test if get the bottom (attention)
-        if re.match(reg_attention, r_string):
+        if re.match(reg_attention, r_string, re.IGNORECASE):
             # if get the bottom of package list, then break out
             break
         # test if qty is zero
