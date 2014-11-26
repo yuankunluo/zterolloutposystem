@@ -30,7 +30,7 @@ def __readAllHeadersFromBook(book):
     :param book: a book object
     :return: a list of headers
     """
-    sheets = __readAllSheetsFromBook(book)
+    sheets = readAllSheetsFromBook(book)
     header_list = []
     for sheet in sheets:
         try:
@@ -53,7 +53,7 @@ def __readAllSheetsWithHeaderInBook(book):
     :return: a list of sheets
     """
     result = []
-    sheets = __readAllSheetsFromBook(book)
+    sheets = readAllSheetsFromBook(book)
     for sheet in sheets:
         if sheet.nrows == 0 or sheet.ncols == 0:
             continue
@@ -66,7 +66,7 @@ def __readAllSheetsWithHeaderInBook(book):
 
 
 
-def __readAllBookFilesInBook(path):
+def readAllWorkbookInBook(path):
     """
     Read all file from path
 
@@ -157,7 +157,7 @@ def readAllBookFilesInPath(path, recursive = False):
         return books
 
 
-def __readAllSheetsFromBook(book):
+def readAllSheetsFromBook(book):
     """
 
     :param book: the Workbook instance
@@ -219,7 +219,7 @@ def findHiddenRowlistFromSheet(origin_sheet):
 
 
 
-def covertSheetRowIntoRowObjectFromSheet(sheet):
+def covertSheetRowIntoRowObjectFromSheet(sheet, headerRowIndex= 0):
     """
     Covert sheet row into row object
 
@@ -227,10 +227,10 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
     :return: a list of excel row object
     """
     result = []
-    HEADER = [clearHeader(unicode(c.value)) for c in sheet.row(0)]
+    HEADER = [clearHeader(unicode(c.value)) for c in sheet.row(headerRowIndex)]
     hiddenCount = 0
     # delete empty header cell
-    for rowx in range(1,sheet.nrows):
+    for rowx in range(headerRowIndex+1,sheet.nrows):
         if rowx in sheet.hiddenlist:
             hiddenCount += 1
         # test this row's empty
@@ -443,7 +443,7 @@ def getAllRowObjectInBook(path):
     reg_nofile = '.*[~$]+.*'
     if re.match(reg_nofile, path):
         return []
-    book = __readAllBookFilesInBook(path)
+    book = readAllWorkbookInBook(path)
     sheets = __readAllSheetsWithHeaderInBook(book)
     rowObjs = []
     for s in sheets:
@@ -475,7 +475,7 @@ def getAllSheetsInPath(path, recursive = False):
     books = readAllBookFilesInPath(path, recursive)
     sheets = []
     for b in books:
-        sheets.extend(__readAllSheetsFromBook(b))
+        sheets.extend(readAllSheetsFromBook(b))
     return sheets
 
 def getHeaderFromSheet(sheet):
@@ -507,6 +507,12 @@ def getTheNewestFileLocationInPath(path, fileNameRegx='^.*\.(xls|xlsx)$',
         return None
 
     filesList = []
+
+    filelist = os.listdir(path)
+    if len(filelist) == 0:
+        print("No FILE in path:", path)
+        return None
+
     if not recursively:
         for fn in os.listdir(path):
             fullpath = os.path.join(path, fn)
@@ -531,14 +537,17 @@ def getTheNewestFileLocationInPath(path, fileNameRegx='^.*\.(xls|xlsx)$',
                     continue
         else:
             filesList.remove(fTupe)
+
     max_mtime = 0
     max_file = None
+
     for fTupe in filesList:
         fullpath = fTupe[1]
         mtime = os.stat(fullpath).st_mtime
         if mtime > max_mtime:
             max_mtime = mtime
             max_file = fullpath
+
     return  max_file
 
 

@@ -1,10 +1,12 @@
 input/**/*.xml
 input/**/*.xls
 input/**/*.xlsx
+input/**/*.xlk
 input/**/*.data
 output/**/*.xml
 output/**/*.xls
 output/**/*.xlsx
+output/**/*.xlk
 output/**/*.data
 **/*.DS_Store
 **/*.pyc

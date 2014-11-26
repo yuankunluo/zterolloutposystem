@@ -275,24 +275,6 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
     :return:
     """
 
-
-    rowObjList = []
-    bm_sheets = []
-    #get all sheets in path
-    # sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
-
-    # test if this is a good bm status list
-    # for sheet in sheets:
-    #     header = fileReader.getHeaderFromSheet(sheet)
-    #     if __contains(attris, header):
-    #         bm_sheets.append(sheet)
-    #     else:
-    #         print("Error: No BM_STATUS Header", sheet.name, sheet.filename)
-    #
-    # for bm_sheet in bm_sheets:
-    #     rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
-    #     rowObjList.extend(rowObjs)
-
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'PRICING',
               u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
@@ -305,8 +287,16 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
     for dirname in listDirs:
         subdir = os.path.join(inputpath, dirname)
         if os.path.isdir(subdir):
-            rowobjs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(subdir))
-            rowObjList.extend(rowobjs)
+            bookpath = fileReader.getTheNewestFileLocationInPath(subdir)
+            workbook = fileReader.readAllWorkbookInBook(bookpath)
+            sheets = fileReader.readAllSheetsFromBook(workbook)
+            for sheet in sheets:
+                if sheet.name:
+                    if re.match('.*(TIS_REPORTING_BASE_M).*', sheet.name, re.IGNORECASE):
+                        rowobjs = fileReader.covertSheetRowIntoRowObjectFromSheet(sheet)
+                        rowObjList.extend(rowobjs)
+                    else:
+                        print("Find no TIS_REPORTING_BASE_M sheet in book", bookpath)
 
     # addint to list
     bm_set = set()
@@ -377,6 +367,30 @@ def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_
 
 
 
+
+def get_ALLBookingStatus(path="input/po_booked_status_xiaorong/", output=True):
+    """
+
+    :param path:
+    :param output:
+    :return:
+    """
+    book = fileReader.readAllWorkbookInBook(fileReader.getTheNewestFileLocationInPath(path))
+    sheets = []
+    for s in fileReader.readAllSheetsFromBook(book):
+        if s.name:
+            if re.match('.*(zte).*', s.name,re.IGNORECASE):
+                sheets.append(s)
+
+    print("Find zte sheets", len(sheets))
+
+    rowObjs = []
+    for s in sheets:
+        rows = fileReader.covertSheetRowIntoRowObjectFromSheet(s, headerRowIndex=1)
+        rowObjs.extend(rows)
+
+
+    return rowObjs
 
 
 

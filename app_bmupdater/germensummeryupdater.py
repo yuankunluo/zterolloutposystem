@@ -122,7 +122,7 @@ def step1_getAllGermanProjectRecordsInPath(inputPath="input/germany_summary/", o
     return result
 
 
-def step2_getBMstatusInPath(bmpath='input/infra_bmstatus/'):
+def step2_getBMstatusInPath(bmpath='input/infra_bmstatus/', output=False):
     """
 
     :param bmstatus:
