@@ -98,6 +98,10 @@ class PurchaseRequisitionRecord(Record):
     pass
 
 
+class BookingStatusReocrd(Record):
+    pass
+
+
 
 
 # ------------------------------ load record
@@ -368,7 +372,7 @@ def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_
 
 
 
-def get_ALLBookingStatus(path="input/po_booked_status_xiaorong/", output=True):
+def get_ALLBookingStatus(path="input/po_booked_status_xiaorong/",outputfilename=None, outputpath = None, output=True):
     """
 
     :param path:
@@ -390,7 +394,28 @@ def get_ALLBookingStatus(path="input/po_booked_status_xiaorong/", output=True):
         rowObjs.extend(rows)
 
 
-    return rowObjs
+    attrs = [u'Belegedatum', u'Buchungsdatum',u'PO',u'Site_ID',u'Stautus',u'SAP_PO_Nr']
+    bookingobj_set = set()
+    for rowobj in rowObjs:
+        bookObj = BookingStatusReocrd(attrs,u'SAP_PO_Nr')
+        for k, v in rowobj.__dict__.items():
+            if k in attrs:
+                bookObj.__setattr__(k, fileReader.clearUnicode(v))
+        bookingobj_set.add(bookObj)
+
+    print("Booking Status record rate", len(bookingobj_set), len(rowObjs))
+
+    if not outputfilename:
+        outputfilename = "Raw_Bookingstatus"
+    if not outputpath:
+        outputpath = "output/dn_maker/"
+
+
+    if output:
+        fileWriter.outputObjectsListToFile(bookingobj_set,outputfilename,outputpath)
+        storeRawData(bookingobj_set,outputfilename,'output/raw/')
+
+    return bookingobj_set
 
 
 

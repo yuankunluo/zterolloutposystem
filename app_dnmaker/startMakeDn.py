@@ -16,6 +16,7 @@ def getAllSAPData():
     orbmids = recordReader.get_AllOrderBmidInPath()
     ztepos = recordReader.get_ALLZteposInPath()
     sapprs = recordReader.get_AllPurchesingRequestionsInPath()
+    bookings = recordReader.get_ALLBookingStatus()
 
     raw_dict = {}
     raw_dict['sappos'] = sappos
@@ -23,6 +24,7 @@ def getAllSAPData():
     raw_dict['orbmids'] = orbmids
     raw_dict['ztepos'] = ztepos
     raw_dict['sapprs'] = sapprs
+    raw_dict['bookings'] = bookings
 
     recordReader.storeRawData(raw_dict,"Raw_data_dict",'output/raw/')
     fileWriter.outputObjectDictToFile(raw_dict,"Raw_Data_ALL",'output/dn_maker/')
@@ -37,17 +39,16 @@ def doMatch(raw_dict):
     orbmids = raw_dict['orbmids']
     ztepos = raw_dict['ztepos']
     sapprs = raw_dict['sapprs']
-
+    bookings = raw_dict['bookings']
 
     result1 = step_1_AddOrbmidsToSapdns(orbmids,sapdns)
     result2 = step_2_AddSapPurchasingRequestToSapdns(sapprs, result1)
     result3 = step_3_AddSappToSapdns(sappos, result2)
     result4 = step_4_MixZtepoAndSapdn(ztepos, result3)
+    result5 = step_5_AddBookingstatusToSapdns(bookings, result4)
+    recordReader.storeRawData(result5, "Step5_SAPDN_WITH_ZTEPO","output/raw/")
 
-    recordReader.storeRawData(result4, "Step4_SAPDN_WITH_ZTEPO","output/raw/")
-
-    return result4
-
+    return result5
 
 
 
@@ -364,10 +365,65 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
 
     return sapdn_with_zpo_set
 
+def step_5_AddBookingstatusToSapdns(bookings, sapdns,outputname=None, outputpath = None,):
+    """
+
+    :param bookings:
+    :param sapdns:
+    :param outputname:
+    :param outputpath:
+    :return:
+    """
+    # build booking_dict : siteid-po : bookingobj
+
+
+    print("step_5_MixZtepoAndSapdn" + "-"*20 + "\n")
+
+    site_po_dict = {}
+    for booking in bookings:
+        if booking.Site_ID and booking.PO:
+            unique = (booking.Site_ID, booking.PO)
+            if unique not in site_po_dict:
+                site_po_dict[unique] = set()
+            site_po_dict[unique].add(booking)
+
+    attrs = [u'Belegedatum', u'Buchungsdatum',u'Stautus']
+
+    booking_match = set()
+    booking_dismatch = set()
+    for sapdn in sapdns:
+        if 'ZTE_PO_Nr' in sapdn.__dict__ and u'Equipment' in sapdn.__dict__:
+            unique = (sapdn.Equipment, sapdn.ZTE_PO_Nr)
+            if unique in site_po_dict:
+                booking_set = site_po_dict[unique]
+
+                if len(booking_set) == 1:
+                    booking = list(booking_set)[0]
+                    for k, v in booking.__dict__.items():
+                        if k in attrs:
+                            sapdn.__dict__[k] = v
+                    booking_match.add(sapdn)
+            else:
+                booking_dismatch.add(sapdn)
+
+    print("Booking match", len(booking_match),"\nBooking dismatch", len(booking_dismatch))
+
+    if not outputname:
+        outputname = "Step_5"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
 
 
 
-def step_5_addBmstatusToSapdns(bmstatus, sapdns, outputname=None, outputpath = None,):
+    fileWriter.outputObjectsListToFile(sapdns,outputname+"_SAPDN_With_Booking",outputpath)
+    recordReader.storeRawData(sapdns, outputname+"_SAPDN_With_Booking",'output/error/')
+    recordReader.storeRawData(booking_dismatch, outputname+"_SAPDN_Without_Booking",'output/error/')
+
+    return sapdns
+
+
+
+def step_6_AddBmstatusToSapdns(bmstatus, sapdns, outputname=None, outputpath = None,):
     """
 
     :param projectname:
@@ -378,7 +434,7 @@ def step_5_addBmstatusToSapdns(bmstatus, sapdns, outputname=None, outputpath = N
     :return:
     """
 
-    print("\nstep_5_addBmstatusToSapdns" + '-'*20)
+    print("\nstep_6_addBmstatusToSapdns" + '-'*20)
 
     d = {u'2Mbit-CE-Erweiterung',
         u'Erweiterung 2nd Carrier UMTS',
@@ -485,7 +541,7 @@ def step_5_addBmstatusToSapdns(bmstatus, sapdns, outputname=None, outputpath = N
 
 
     if not outputname:
-        outputname = "Step_5"
+        outputname = "Step_6"
     if not outputpath:
         outputpath = 'output/dn_maker/'
 
