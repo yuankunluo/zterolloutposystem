@@ -77,7 +77,7 @@ def goThroughDirectory(path , outputname="DNGE_REPORT_", weekly = False, recursi
             head = readDngeHeader(s)
             # print(head.__dict__)
             contents = readDngeContent2(s)
-            print("Read %d records from sheet: %s"%(len(contents), s.filename))
+            # print("Read %d records from sheet: %s"%(len(contents), s.filename))
             dng.header = head
             dng.contents = contents
             dngs.append(dng)
@@ -153,6 +153,8 @@ def __prepareFoWriting(dngs):
                 outputRecord.SITE_ID = outputRecord.NEID
 
             dng_records.append(outputRecord)
+
+    print("Total: %d DNGE Records readed"%(len(dng_records)))
     return dng_records
 
 
@@ -235,6 +237,8 @@ def readDngeContent2(sheet):
         "BomNr":"BomNr",
     }
 
+    if len(sheet.hiddenlist) != 0:
+        print("***Find %d Hiddenrows"%(len(sheet.hiddenlist)), sheet.source)
     stop_reg = ".*(attention.*all the information with mark).*|.*(Approved by).*|Approved"
 
     header_row = [c.value for c in sheet.row(7)]
@@ -248,6 +252,8 @@ def readDngeContent2(sheet):
         # test if this the end of correct
         if re.match(stop_reg, cells_str, re.IGNORECASE):
             # print("Find stop string", cells_str)
+            break
+        if rowx in sheet.hiddenlist:
             break
         content = DNGEContentRecord()
         for colx in range(len(header_row)):
