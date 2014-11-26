@@ -299,7 +299,14 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
               u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'DO_TYP_NAME',
     ]
 
-    rowObjList = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(inputpath))
+    rowObjList = []
+
+    listDirs = os.listdir(inputpath)
+    for dirname in listDirs:
+        subdir = os.path.join(inputpath, dirname)
+        if os.path.isdir(subdir):
+            rowobjs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(subdir))
+            rowObjList.extend(rowobjs)
 
     # addint to list
     bm_set = set()
@@ -312,7 +319,7 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
 
 
 
-    print("BM rate", len(bm_set), len(rowObjList))
+    print("BM rate", len(bm_set), len(rowObjList), len(bm_set)/len(rowObjList))
 
     if not outputfilename:
         outputfilename = "Raw_Bmstatus"

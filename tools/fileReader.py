@@ -76,7 +76,7 @@ def __readAllBookFilesInBook(path):
     """
     if path is None:
         return None
-    print("__readAllBookFilesInBook", path)
+    # print("__readAllBookFilesInBook", path)
     book = open_workbook(path)
     book.source = path
     reg_f = '\.xls$|\.xlsx$'
@@ -125,10 +125,10 @@ def readAllBookFilesInPath(path, recursive = False):
                         except Exception:
                             print("Error: reading xlsx file", book_path)
                             continue
-            print("Read %d excels files"%(bookCount))
+            # print("Read %d excels files"%(bookCount))
             return books
         else:
-            print('%s is not path!'%(path))
+            print('Error: %s is not path!'%(path))
             return []
     else:
         books = []
@@ -152,7 +152,7 @@ def readAllBookFilesInPath(path, recursive = False):
                         except Exception:
                             print("Error reading xls file", book_path)
                             continue
-        print("Read %d excels files"%(bookCount))
+        # print("Read %d excels files"%(bookCount))
         return books
 
 
@@ -212,8 +212,8 @@ def findHiddenRowlistFromSheet(origin_sheet):
                 hiddenlist = xhidden_list
         except Exception:
             print("Error Reading xlsx file", origin_sheet.source)
-    if len(hiddenlist) != 0:
-        print("Find %d hiddenlist in sheet %s : %s"%(len(hiddenlist), origin_sheet.source, origin_sheet.name))
+    # if len(hiddenlist) != 0:
+        # print("Find %d hiddenlist in sheet %s : %s"%(len(hiddenlist), origin_sheet.source, origin_sheet.name))
     return hiddenlist
 
 
@@ -448,7 +448,7 @@ def getAllRowObjectInBook(path):
     for s in sheets:
         rowObj = covertSheetRowIntoRowObjectFromSheet(s)
         rowObjs.extend(rowObj)
-    print("Read %d Rowobjects from %s"%(len(rowObjs), path))
+    # print("Read %d Rowobjects from %s"%(len(rowObjs), path))
     return rowObjs
 
 
