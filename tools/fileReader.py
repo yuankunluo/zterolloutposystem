@@ -435,6 +435,9 @@ def getAllRowObjectInPath(path, recursive = False):
 
 
 def getAllRowObjectInBook(path):
+
+    if path == None:
+        return []
     # test if path is a non valid file
     reg_nofile = '.*[~$]+.*'
     if re.match(reg_nofile, path):
@@ -499,6 +502,9 @@ def test(dng):
 
 def getTheNewestFileLocationInPath(path, fileNameRegx='^.*\.(xls|xlsx)$',
                                    recursively = False):
+    if path is None:
+        return None
+
     filesList = []
     if not recursively:
         for fn in os.listdir(path):

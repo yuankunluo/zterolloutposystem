@@ -266,7 +266,7 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
 
 def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
-                                outputfilename=None, outputpath = None):
+                                outputfilename=None, outputpath = None, output=True):
     """
     Read bmstatus in path
 
@@ -279,12 +279,8 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
     rowObjList = []
     bm_sheets = []
     #get all sheets in path
-    sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'PRICING',
-              u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
-              u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'DO_TYP_NAME',
-    ]
+    # sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
+
     # test if this is a good bm status list
     # for sheet in sheets:
     #     header = fileReader.getHeaderFromSheet(sheet)
@@ -296,6 +292,12 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
     # for bm_sheet in bm_sheets:
     #     rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
     #     rowObjList.extend(rowObjs)
+
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'PRICING',
+              u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
+              u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'DO_TYP_NAME',
+    ]
 
     rowObjList = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(inputpath))
 
@@ -318,9 +320,9 @@ def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
         outputpath = "output/dn_maker/"
 
 
-
-    fileWriter.outputObjectsListToFile(bm_set,outputfilename,outputpath)
-    storeRawData(bm_set,outputfilename,'output/raw/')
+    if output:
+        fileWriter.outputObjectsListToFile(bm_set,outputfilename,outputpath)
+        storeRawData(bm_set,outputfilename,'output/raw/')
 
     return bm_set
 

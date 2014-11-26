@@ -34,6 +34,20 @@ class GermanUpdateRecord(Record):
 
 
 
+def goToUpdate(reportPath="input/germany_summary/", bmpath='input/infra_bmstatus/'):
+    """
+
+    :param reportPath:
+    :param bmpath:
+    :return:
+    """
+    gmr = step1_getAllGermanProjectRecordsInPath(reportPath)
+    bms = step2_getBMstatusInPath(bmpath)
+    dns = step3_updateBmStatusToGermanReportRecord(bms, gmr)
+
+    print("\nUpdate over")
+
+
 
 def step1_getAllGermanProjectRecordsInPath(inputPath="input/germany_summary/", outputFilename=None, outputPath = None):
     """
@@ -62,6 +76,9 @@ def step1_getAllGermanProjectRecordsInPath(inputPath="input/germany_summary/", o
     u'Sheetname':u'Sheetname$',
     }
 
+    HEADER = [u'BAUMASSNAHME_ID',u'PRICING',u'NBNEU',u'BS_FE',u'IST21',u'IST26',
+              u'HW_BANF',u'HW_PO',u'IST82',u'IST92',u'IST100',u'Booking',u'CM'
+              ]
 
     SHEET_NAME = [u'BBU Extension',u'New UMTS',u'RRU Swap',
                   u'3rd and 4th Carrier Expansion',
@@ -99,8 +116,8 @@ def step1_getAllGermanProjectRecordsInPath(inputPath="input/germany_summary/", o
 
     fileWriter.outputObjectDictToFile(result,
                                       outputFilename,
-                                      outputPath)
-    recordReader.storeRawData(result,outputFilename,"output/raw/")
+                                      outputPath, header=HEADER)
+    # recordReader.storeRawData(result,outputFilename,"output/raw/")
 
     return result
 
@@ -115,7 +132,7 @@ def step2_getBMstatusInPath(bmpath='input/infra_bmstatus/'):
 
 
     bmstatus = recordReader.get_AllBMStatusRecordInPath(inputpath=bmpath,
-            outputfilename="Infra_BM_All",outputpath="output/bm_updater/")
+            outputfilename="Infra_BM_All",outputpath="output/bm_updater/", output=False)
 
     return bmstatus
 
@@ -125,7 +142,7 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
 
     germanDict = copy.deepcopy(germanDict)
 
-    attris = [u'IST92',u'IST21',
+    attris = [u'IST92',u'IST21',u'NBNEU'
               u'IST26',u'IST82',u'IST100',]
 
 
@@ -207,16 +224,19 @@ def step3_updateBmStatusToGermanReportRecord(bmstatus, germanDict):
 
     print("Updatecount", len(update_set))
 
+
+    HEADER = [u'BAUMASSNAHME_ID',u'PRICING',u'NBNEU',u'BS_FE',u'IST21',u'IST26',
+              u'HW_BANF',u'HW_PO',u'IST82',u'IST92',u'IST100',u'Booking',u'CM'
+              ]
+
     fileWriter.outputObjectDictToFile(germanDict,'German_Project_Summary',
-                                      'output/bm_updater/','%Y%m%d')
+                                      'output/bm_updater/','%Y%m%d', header=HEADER)
 
     fileWriter.outputObjectsListToFile(update_set,'German_Project_Summary_updatelist',
                                    'output/bm_updater/')
 
-    fileWriter.outputObjectsListToFile(new_92_set,'German_Project_NEW92',
-                                   'output/bm_updater/')
 
-    recordReader.storeRawData(new_92_set, "German_project_NEW92",'output/raw/')
+    # recordReader.storeRawData(new_92_set, "German_project_NEW92",'output/raw/')
     return germanDict
 
 

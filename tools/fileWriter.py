@@ -68,7 +68,7 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
     print("OK: output",path + filename + '.xls' )
 
 
-def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
+def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None, header=None):
 
     if type(objectDict) != dict:
         print("Not a Dict, object can not be wrote")
@@ -81,7 +81,7 @@ def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
     book = Workbook()
 
     for k, v in objectDict.items():
-        book = __writeObjectInoSheetOfBook(v, k, book)
+        book = __writeObjectInoSheetOfBook(v, k, book, header)
 
     if timeformatStr:
         filename += "_" + getNowAsString(timeformatStr)
@@ -92,7 +92,7 @@ def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
 
 
 
-def __writeObjectInoSheetOfBook(objects ,sheetname , book):
+def __writeObjectInoSheetOfBook(objects ,sheetname , book, header=None):
 
 
     if type(objects) is not list:
@@ -111,14 +111,17 @@ def __writeObjectInoSheetOfBook(objects ,sheetname , book):
 
 
     sheet = book.add_sheet(sheetname)
-    HEADER = []
-    for obj in objects:
-        HEADER.extend(obj.__dict__.keys())
-    HEADER = set(HEADER)
-    HEADER = list(HEADER)
-    if 'Key_Attr' in HEADER:
-        HEADER.remove('Key_Attr')
-    HEADER.sort()
+    if not header:
+        HEADER = []
+        for obj in objects:
+            HEADER.extend(obj.__dict__.keys())
+        HEADER = set(HEADER)
+        HEADER = list(HEADER)
+        if 'Key_Attr' in HEADER:
+            HEADER.remove('Key_Attr')
+        HEADER.sort()
+    else:
+        HEADER = header
 
     rowindex = 0
     for colx in range(len(HEADER)):
