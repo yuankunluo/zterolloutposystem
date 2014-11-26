@@ -162,15 +162,47 @@ def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_REPORT_', pat
     :param weekly:
     :return:
     """
-    # HEADER = dngRecords[0].__dict__.keys()
-    HEADER = ['DN_NO', u'SITE_ID', u'bmid', 'Applicant' ,
-              'Phone_NO2','Phone_NO1','Carrier','Consignee',
-              'Original_Warehouse', u'no', u'packageno',
-              'Required_date_of_Arrival',
-              u'bomno', u'detaildescription', u'qty', u'unit',u'remark',
-              'Destination_Address','Source','Filename'
-              #'Yearnr', 'Weeknr','Weekdaynr','Date'
+    HEADER = dngRecords[0].__dict__.keys()
+
+    HEADER = [
+        'DN_NO',
+        'SITE_ID',
+        # 'NEID',
+        'BMID',
+        'Region',
+        'Project_Name',
+        'Destination_Address',
+        'Required_date_of_Arrival',
+
+        'Staff_ID',
+        'Applicant',
+        'Consignee',
+        'Original_Warehouse',
+        'Phone_NO2',
+        'Phone_NO1',
+        # 'Carrier',
+        # 'Carry_Mode',
+        # 'Contract_NO'
+
+        'No',
+        'PackageNo',
+        'BomNr',
+        'Detail_Description',
+        'QTY',
+        'UNIT',
+        'Volume',
+        'Remark',
+
+
+        # 'Weeknr',
+        'Filename',
+        # 'Source',
+        # 'Yearnr',
+        # 'Weekdaynr',
+        # 'Date',
     ]
+
+
 
     if weekly: # output weekly report
         # get week nrs in dngRecords

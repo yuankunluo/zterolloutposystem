@@ -6,7 +6,10 @@ import copy
 import tools.fileReader as fileReader
 import datetime
 import tools.fileWriter as fileWriter
+from app_dnmaker.recordReader import Record
 
+class OutputDNGE(Record):
+    pass
 
 class DNGE(object):
     """
@@ -48,8 +51,7 @@ class DNGEContentRecord(object):
 # -------------------------
 
 
-def goThroughDirectory(path , weekly = False, yearNr = None,
-                       weekNr = None, date = None, weekDayNr = None,  recursive = True,
+def goThroughDirectory(path , outputname="DNGE_REPORT_", weekly = False, recursive = True,
                        output = True):
     """
 
@@ -69,42 +71,26 @@ def goThroughDirectory(path , weekly = False, yearNr = None,
 
     print("Read sheets count", len(sheets))
 
-    heads = set()
     for s in sheets:
-        # try:
-        dng = DNGE(s.filename)
-        head = readDngeHeader(s)
-        # print(head.__dict__)
-        contents = readDngeContent2(s)
-        for c in contents:
-            heads.add(c)
-        # print("Read %d records from sheet: %s"%(len(contents), s.filename))
-        # dng.header = head
-        # dng.contents = contents
-        # dngs.append(dng)
-        # # except Exception:
-        # #     print("Error reading Sheet", s.filename, s.sheetname)
+        try:
+            dng = DNGE(s.filename)
+            head = readDngeHeader(s)
+            # print(head.__dict__)
+            contents = readDngeContent2(s)
+            print("Read %d records from sheet: %s"%(len(contents), s.filename))
+            dng.header = head
+            dng.contents = contents
+            dngs.append(dng)
+        except Exception:
+            print("Error reading Sheet", s.filename, s.sheetname)
 
-    return heads
+    # prepare for writing
+    dng_records = __prepareFoWriting(dngs)
 
-    # # prepare for writing
-    # dng_records = __prepareFoWriting(dngs)
-    #
-    # if date:
-    #     date = unicode(date)
-    #     dng_records = [dng for dng in dng_records if re.match('.*'+date+'.*', dng.Date)]
-    # if weekNr and yearNr and weekDayNr:
-    #     dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr and dng.Yearnr == yearNr and dng.Weekdaynr == weekDayNr]
-    # if weekNr and yearNr:
-    #     dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr and dng.Yearnr == yearNr]
-    # if weekNr:
-    #     dng_records = [dng for dng in dng_records if dng.Weeknr == weekNr]
-    #
-    #
-    # if output:
-    #     # writing file
-    #     fileWriter.outputDngeReport(dng_records, weekly)
-    # return dng_records
+    if output:
+        # writing file
+        fileWriter.outputDngeReport(dng_records, weekly, filename=outputname)
+    return dng_records
 
 
 def __prepareFoWriting(dngs):
@@ -113,40 +99,60 @@ def __prepareFoWriting(dngs):
     :param dngs:
     :return:
     """
+    HEADER = [
+        'DN_NO',
+        'SITE_ID',
+        'NEID',
+        'BMID',
+        'Region',
+        'Project_Name',
+        'Destination_Address',
+        'Required_date_of_Arrival',
+
+        'Staff_ID',
+        'Applicant',
+        'Consignee',
+        'Original_Warehouse',
+        'Phone_NO2',
+        'Phone_NO1',
+        'Carrier',
+        'Carry_Mode',
+        'Contract_NO'
+
+        'No',
+        'PackageNo',
+        'BomNr',
+        'Detail_Description',
+        'QTY',
+        'UNIT',
+        'Volume',
+        'Remark',
+
+
+        'Weeknr',
+        'Filename',
+        'Source',
+        'Yearnr',
+        'Weekdaynr',
+        'Date',
+    ]
+
+
     dng_records = []
     for dng in dngs:
         head = dng.header
         for dngc in dng.contents:
-            dngr = DNGERecord()
-            dngr.__dict__ = dngc.__dict__
+            outputRecord = OutputDNGE(HEADER, 'BMID',)
             for k, v in head.__dict__.items():
-                dngr.__dict__[k] = v
-            reg_neid = r'(1[0-9].{6})'
+                outputRecord.__dict__[k] = v
+            for k, v in dngc.__dict__.items():
+                outputRecord.__dict__[k] = v
 
-            # test if content has neid field
-            if 'neid' in dngc.__dict__.keys(): # has neid
-                neid = fileReader.clearUnicode(dngc.neid)
-                if neid:
-                    #print('neid', neid)
-                    if re.match(reg_neid, neid):
-                        dngr.SITE_ID = neid
-            else: # if has not neid, then match remark
-                if 'remark' in dngc.__dict__.keys():
-                    ma = re.match(reg_neid, unicode(dngc.remark))
-                    if ma:
-                        if dngr.SITE_ID != ma.group(0):
-                            dngr.SITE_ID = ma.group(0)
-            dng_records.append(dngr)
+            #
+            if not outputRecord.SITE_ID and outputRecord.NEID:
+                outputRecord.SITE_ID = outputRecord.NEID
 
-    # # cover number to integer
-    for dng in dng_records:
-        for k, v in dng.__dict__.items():
-            if k not in ['Yearnr','Weeknr','Weekdaynr','Date','SITE_ID',]:
-                if isinstance(v, unicode) or isinstance(v, str):
-                    value = fileReader.cleanString(v)
-                    dng.__dict__[k] = value
-                    continue
-
+            dng_records.append(outputRecord)
     return dng_records
 
 
@@ -192,7 +198,7 @@ def readDngeHeader(sheet):
         value = None
         value_list = [fileReader.getCellValueByLocation(sheet, lo) for lo in locations[k]]
         value_list = [fileReader.clearUnicode(v) for v in value_list]
-        value_list = [v for v in value_list if v is not None]
+        value_list = [fileReader.cleanString(v) for v in value_list if v is not None]
         # get the string of value
         try:
             value = ''.join(value_list)
@@ -231,17 +237,29 @@ def readDngeContent2(sheet):
 
     stop_reg = ".*(attention.*all the information with mark).*|.*(Approved by).*|Approved"
 
-    header_row = [fileReader.cleanString(fileReader.clearUnicode(c.value), replaceblank=True) for c in sheet.row(7)]
+    header_row = [c.value for c in sheet.row(7)]
 
+    header_row = [fileReader.cleanString(v, True) for v in header_row]
+
+    content_list = []
     for rowx in range(8, sheet.nrows):
         cells = [fileReader.cleanString(fileReader.clearUnicode(c.value)) for c in sheet.row(rowx) if c.value]
         cells_str = "".join([x for x in cells if x])
         # test if this the end of correct
         if re.match(stop_reg, cells_str, re.IGNORECASE):
-            print("Find stop string", cells_str)
+            # print("Find stop string", cells_str)
             break
-        print("Cell", cells_str)
-    return header_row
+        content = DNGEContentRecord()
+        for colx in range(len(header_row)):
+            h = header_row[colx]
+            v = fileReader.clearUnicode(sheet.cell(rowx, colx).value)
+            for k, reg in regx_dict.items():
+                if h:
+                    if re.match(reg, h, re.IGNORECASE):
+                        content.__dict__[k] = v
+        content_list.append(content)
+
+    return content_list
 
 
 
