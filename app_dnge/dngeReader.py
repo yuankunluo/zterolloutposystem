@@ -255,6 +255,8 @@ def readDngeContent2(sheet):
             break
         if rowx in sheet.hiddenlist:
             break
+        if len(cells_str) < 10:
+            break
         content = DNGEContentRecord()
         for colx in range(len(header_row)):
             h = header_row[colx]
