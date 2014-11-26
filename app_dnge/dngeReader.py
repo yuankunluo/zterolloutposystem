@@ -69,7 +69,7 @@ def goThroughDirectory(path , outputname="DNGE_REPORT_", weekly = False, recursi
 
     sheets = __getRidoffEmptySheet(sheets)
 
-    print("Read sheets count", len(sheets))
+    print("Read %d sheets"%(len(sheets)))
 
     for s in sheets:
         try:
