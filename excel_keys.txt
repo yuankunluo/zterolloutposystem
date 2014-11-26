@@ -91,3 +91,42 @@ Out[28]:
  u'Site_ID': 16530352.0,
  'Source': 'input/po_booked_status_xiaorong/ZTE gebuchte Lieferscheine_update bis 26.11.2014.xlsx',
  u'Stautus': u'falsche PO Nummer'}
+
+
+
+
+dns[0].__dict__
+Out[3]:
+{'Applicant': u'Quan Zhou',
+ 'BMID': u'201715418',
+ 'BomNr': u'130000040522 ',
+ 'Carrier': '',
+ 'Carry_Mode': '',
+ 'Consignee': u'Dietmar Focht 251114',
+ 'Contract_NO': u'S4DE2009121401UMTCS1',
+ 'Contract_NONo': None,
+ 'DN_NO': '',
+ 'Date': '20141126',
+ 'Destination_Address': u'ZTE Services Deutschland GmbHLeitzstrasse 4570469 Stuttgart',
+ 'Detail_Description': u'BPK Board',
+ 'Filename': u'19530529_BPK_ DO_Stgt',
+ 'Key_Attr': 'BMID',
+ 'NEID': u'19530529',
+ 'No': u'1',
+ 'Original_Warehouse': u'Central',
+ 'PackageNo': None,
+ 'Phone_NO1': '',
+ 'Phone_NO2': '',
+ 'Project_Name': u'Tiger UMTS',
+ 'QTY': u'4',
+ 'Region': u'South',
+ 'Remark': None,
+ 'Required_date_of_Arrival': u'41971',
+ 'SITE_ID': u'19530529',
+ 'Source': 'input/dnge/test//19530529_BPK_ DO_Stgt.xls',
+ 'Staff_ID': u'6266000073',
+ 'UNIT': u'pcs',
+ 'Volume': None,
+ 'Weekdaynr': 3,
+ 'Weeknr': 48,
+ 'Yearnr': 2014}
