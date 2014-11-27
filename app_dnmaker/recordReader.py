@@ -154,7 +154,7 @@ def get_AllSappoInPath(path='input/po_ztematerial_to_sappo_zztepolist/' , output
         u'Reference_PO_Number',
     ]
     sapopo_set = set()
-    rowObjs = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
+    rowObjs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     missing_set = set()
 
     # cover rows as bmboject
@@ -241,7 +241,7 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
     attris = [u'Equipment',u'Order',u'NotesID']
 
-    rows = fileReader.getAllRowObjectInPath(path)
+    rows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     orbmid_set = set()
     miss_set = set()
 

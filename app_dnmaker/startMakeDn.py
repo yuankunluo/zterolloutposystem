@@ -16,6 +16,7 @@ def gogogo():
     sapdns = doMatch(datadict)
     bmstaus = recordReader.get_AllBMStatusRecordInPath()
     result = step_6_AddBmstatusToSapdns(bmstaus, sapdns)
+    print("It's Done")
     return result
 
 def getAllSAPData():
