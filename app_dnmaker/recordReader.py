@@ -154,7 +154,7 @@ def get_AllSappoInPath(path='input/po_ztematerial_to_sappo_zztepolist/' , output
         u'Reference_PO_Number',
     ]
     sapopo_set = set()
-    rowObjs = fileReader.getAllRowObjectInPath(path)
+    rowObjs = fileReader.getAllRowObjectInPath(fileReader.getTheNewestFileLocationInPath(path))
     missing_set = set()
 
     # cover rows as bmboject

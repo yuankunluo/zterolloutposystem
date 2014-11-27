@@ -10,6 +10,14 @@ import re
 
 
 
+
+def gogogo():
+    datadict = getAllSAPData()
+    sapdns = doMatch(datadict)
+    bmstaus = recordReader.get_AllBMStatusRecordInPath()
+    result = step_6_AddBmstatusToSapdns(bmstaus, sapdns)
+    return result
+
 def getAllSAPData():
     sappos = recordReader.get_AllSappoInPath()
     sappns = recordReader.get_AllSapdnInPath()

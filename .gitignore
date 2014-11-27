@@ -1,5 +1,6 @@
 input/**/*.xml
 input/**/*.xls
+input/**/*.txt
 input/**/*.xlsx
 input/**/*.xlk
 input/**/*.data
@@ -8,9 +9,11 @@ output/**/*.xls
 output/**/*.xlsx
 output/**/*.xlk
 output/**/*.data
+output/**/*.txt
 **/*.DS_Store
 **/*.pyc
 **/*.raw
 **/*/data
+**/*/*.txt
 input/**/~*.*
 output/**/~*.*
