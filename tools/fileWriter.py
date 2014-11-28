@@ -165,33 +165,37 @@ def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_REPORT_', pat
     HEADER = dngRecords[0].__dict__.keys()
 
     HEADER = [
+
         'DN_NO',
         'SITE_ID',
-        # 'NEID',
         'BMID',
-        'Region',
-        'Project_Name',
-        'Destination_Address',
-        'Required_date_of_Arrival',
 
-        'Staff_ID',
         'Applicant',
-        'Consignee',
-        'Original_Warehouse',
-        'Phone_NO2',
         'Phone_NO1',
-        # 'Carrier',
-        # 'Carry_Mode',
-        # 'Contract_NO'
+        'Phone_NO2',
+        'Carrier',
+        'Consignee',
 
+        'Original_Warehouse',
         'No',
         'PackageNo',
+        'Required_date_of_Arrival',
         'BomNr',
         'Detail_Description',
         'QTY',
         'UNIT',
         'Volume',
         'Remark',
+        'Destination_Address',
+
+
+
+
+        #--------------------
+
+        'Region',
+        'Project_Name',
+
 
 
         # 'Weeknr',
