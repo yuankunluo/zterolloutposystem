@@ -28,6 +28,10 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
         print("None object can not be wrote")
         return
 
+
+    objects.sort()
+
+
     book = Workbook()
     sheet = book.add_sheet('Overview')
     if header == None:
@@ -39,12 +43,19 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
         HEADER.sort()
     else:
         HEADER = header
+
+    if 'Key_Attr' in HEADER:
+        HEADER.remove('Key_Attr')
+
     rowindex = 0
     for colx in range(len(HEADER)):
         sheet.write(0, colx, HEADER[colx])
     for obj in objects:
         for colx in range(len(HEADER)):
             try:
+                value = obj.__dict__[HEADER[colx]]
+                if isinstance(value, list):
+                    value = ";".join(value)
                 sheet.write(rowindex+1, colx, obj.__dict__[HEADER[colx]])
             except Exception:
                 continue
@@ -57,7 +68,7 @@ def outputObjectsListToFile(objects, filename, path, timeformatStr = None, heade
     print("OK: output",path + filename + '.xls' )
 
 
-def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
+def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None, header=None):
 
     if type(objectDict) != dict:
         print("Not a Dict, object can not be wrote")
@@ -70,7 +81,7 @@ def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
     book = Workbook()
 
     for k, v in objectDict.items():
-        book = __writeObjectInoSheetOfBook(v, k, book)
+        book = __writeObjectInoSheetOfBook(v, k, book, header)
 
     if timeformatStr:
         filename += "_" + getNowAsString(timeformatStr)
@@ -81,15 +92,36 @@ def outputObjectDictToFile(objectDict, filename, path, timeformatStr=None):
 
 
 
-def __writeObjectInoSheetOfBook(objects ,sheetname , book):
+def __writeObjectInoSheetOfBook(objects ,sheetname , book, header=None):
+
+
+    if type(objects) is not list:
+        try:
+            objects  = list(objects)
+        except Exception:
+            print("Can not cover objects into list")
+            return book
+
+    if objects is None or len(objects) == 0:
+        print("None object can not be wrote")
+        return book
+
+
+    objects.sort()
+
 
     sheet = book.add_sheet(sheetname)
-    HEADER = []
-    for obj in objects:
-        HEADER.extend(obj.__dict__.keys())
-    HEADER = set(HEADER)
-    HEADER = list(HEADER)
-    HEADER.sort()
+    if not header:
+        HEADER = []
+        for obj in objects:
+            HEADER.extend(obj.__dict__.keys())
+        HEADER = set(HEADER)
+        HEADER = list(HEADER)
+        if 'Key_Attr' in HEADER:
+            HEADER.remove('Key_Attr')
+        HEADER.sort()
+    else:
+        HEADER = header
 
     rowindex = 0
     for colx in range(len(HEADER)):
@@ -130,15 +162,51 @@ def outputDngeReport(dngRecords, weekly = False,  filename = 'DNGE_REPORT_', pat
     :param weekly:
     :return:
     """
-    # HEADER = dngRecords[0].__dict__.keys()
-    HEADER = ['DN_NO', u'SITE_ID', u'bmid', 'Applicant' ,
-              'Phone_NO2','Phone_NO1','Carrier','Consignee',
-              'Original_Warehouse', u'no', u'packageno',
-              'Required_date_of_Arrival',
-              u'bomno', u'detaildescription', u'qty', u'unit',u'remark',
-              'Destination_Address','Source',
-              #'Yearnr', 'Weeknr','Weekdaynr','Date'
+    HEADER = dngRecords[0].__dict__.keys()
+
+    HEADER = [
+
+        'DN_NO',
+        'SITE_ID',
+        'BMID',
+
+        'Applicant',
+        'Phone_NO1',
+        'Phone_NO2',
+        'Carrier',
+        'Consignee',
+
+        'Original_Warehouse',
+        'No',
+        'PackageNo',
+        'Required_date_of_Arrival',
+        'BomNr',
+        'Detail_Description',
+        'QTY',
+        'UNIT',
+        'Volume',
+        'Remark',
+        'Destination_Address',
+
+
+
+
+        #--------------------
+
+        'Region',
+        'Project_Name',
+
+
+
+        # 'Weeknr',
+        'Filename',
+        # 'Source',
+        # 'Yearnr',
+        # 'Weekdaynr',
+        # 'Date',
     ]
+
+
 
     if weekly: # output weekly report
         # get week nrs in dngRecords
@@ -276,3 +344,5 @@ def outputListOfTupleToFile(listofTuple, filename, path, header=None):
 def getNowAsString(formatStr = "%Y%m%d_%H%M"):
     tims = datetime.datetime.now().strftime(formatStr)
     return tims
+
+

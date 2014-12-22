@@ -10,12 +10,22 @@ import re
 
 
 
+
+def gogogo():
+    datadict = getAllSAPData()
+    sapdns = doMatch(datadict)
+    bmstaus = recordReader.get_AllBMStatusRecordInPath()
+    result = step_6_AddBmstatusToSapdns(bmstaus, sapdns)
+    print("It's Done")
+    return result
+
 def getAllSAPData():
     sappos = recordReader.get_AllSappoInPath()
     sappns = recordReader.get_AllSapdnInPath()
     orbmids = recordReader.get_AllOrderBmidInPath()
     ztepos = recordReader.get_ALLZteposInPath()
     sapprs = recordReader.get_AllPurchesingRequestionsInPath()
+    bookings = recordReader.get_ALLBookingStatus()
 
     raw_dict = {}
     raw_dict['sappos'] = sappos
@@ -23,6 +33,7 @@ def getAllSAPData():
     raw_dict['orbmids'] = orbmids
     raw_dict['ztepos'] = ztepos
     raw_dict['sapprs'] = sapprs
+    raw_dict['bookings'] = bookings
 
     recordReader.storeRawData(raw_dict,"Raw_data_dict",'output/raw/')
     fileWriter.outputObjectDictToFile(raw_dict,"Raw_Data_ALL",'output/dn_maker/')
@@ -37,37 +48,16 @@ def doMatch(raw_dict):
     orbmids = raw_dict['orbmids']
     ztepos = raw_dict['ztepos']
     sapprs = raw_dict['sapprs']
-
+    bookings = raw_dict['bookings']
 
     result1 = step_1_AddOrbmidsToSapdns(orbmids,sapdns)
     result2 = step_2_AddSapPurchasingRequestToSapdns(sapprs, result1)
     result3 = step_3_AddSappToSapdns(sappos, result2)
     result4 = step_4_MixZtepoAndSapdn(ztepos, result3)
+    result5 = step_5_AddBookingstatusToSapdns(bookings, result4)
+    recordReader.storeRawData(result5, "Step5_SAPDN_WITH_ZTEPO","output/raw/")
 
-    recordReader.storeRawData(result4, "Step4_SAPDN_WITH_ZTEPO","output/raw/")
-
-    return result4
-
-def startDoProjectBMMatchToSapdns(sapdns):
-
-    projectDict = {
-        # 'BBU': 'input/infra_bm_bbu/',
-        'BPK': 'input/infra_bm_bpk/',
-        'LTE': 'input/infra_bm_lte/',
-        'RRUSWAP': 'input/infra_bm_rruswap/',
-        'UMTSNEW': 'input/infra_bm_umtsnew/',
-    }
-
-    for project, bmpath in projectDict.items():
-
-        bmstatus = recordReader.get_AllBMStatusRecordInPath(project, bmpath)
-        sapdns = step_5_addBmstatusToSapdns(project, bmstatus, sapdns)
-
-
-
-    fileWriter.outputObjectsListToFile(sapdns,"Step_6_SAPDN_Nomatch","output/dn_maker/")
-
-    return sapdns
+    return result5
 
 
 
@@ -231,6 +221,7 @@ def step_3_AddSappToSapdns(sappos, sapdns,outputname=None, outputpath = None,):
 
     print("step_3_AddSappToSapdns" + "-"*20 + "\n")
 
+
     # build P_I_M_Q key
     pimq_dict = {}
     for spo in sappos:
@@ -288,8 +279,6 @@ def step_3_AddSappToSapdns(sappos, sapdns,outputname=None, outputpath = None,):
 
 
 
-
-
 def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,):
     """
 
@@ -302,24 +291,19 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
 
     print("step_4_MixZtepoAndSapdn" + "-"*20 + "\n")
 
+    c_ztepos = copy.deepcopy(ztepos)
+    c_sapdns = copy.deepcopy(sapdns)
+
+    findDisMatchWithZteposAndSapdns(c_ztepos, c_sapdns)
+
     # dict with ztepo
     zpo_spmq_dict = {}
     for zpo in ztepos:
-
         if zpo.ZTE_Site_ID and zpo.ZTE_PO_Nr and zpo.ZTE_Material and zpo.ZTE_Qty:
             unique = (zpo.ZTE_Site_ID, zpo.ZTE_PO_Nr, zpo.ZTE_Material, zpo.ZTE_Qty)
             if unique not in zpo_spmq_dict:
                 zpo_spmq_dict[unique] = set()
             zpo_spmq_dict[unique].add(zpo)
-
-
-
-
-    if not outputname:
-        outputname = "Step_4"
-    if not outputpath:
-        outputpath = 'output/dn_maker/'
-
 
     zpo_attrs = {
         'ZTE_CM_No': u'5101531993',
@@ -343,13 +327,14 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
             else:
                 unique_r = None
 
-            if unique in zpo_spmq_dict:
-                zpo_set = zpo_spmq_dict[unique]
-            elif unique not in zpo_spmq_dict and unique_r and unique_r in zpo_spmq_dict:
-                zpo_set = zpo_spmq_dict[unique_r]
-            else:
+
+            if unique not in zpo_spmq_dict and unique_r not in zpo_spmq_dict:
                 sapdn_notin_zpos.add(sapdn)
                 continue
+            elif unique in zpo_spmq_dict and unique_r not in zpo_spmq_dict:
+                zpo_set = zpo_spmq_dict[unique]
+            else:
+                zpo_set = zpo_spmq_dict[unique_r]
 
             if len(zpo_set) == 1:
                 sapdn_zpo_onematch.add(sapdn)
@@ -363,9 +348,17 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
                 sapdn_zpo_morematch = sapdn_zpo_morematch.union(zpo_set)
 
 
+
+
     print("ZPO AND SAPDN SPMQ ONE-ONE MATCH", len(sapdn_zpo_onematch))
     print("SAPPO not in ZPO", len(sapdn_notin_zpos))
     print("ZPO AND SAPDN SPMQ ONE-More MATCH", len(sapdn_zpo_morematch))
+
+    if not outputname:
+        outputname = "Step_4"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
+
 
     fileWriter.outputObjectsListToFile(sapdn_notin_zpos,outputname+"_sapdn_notin_zpos","output/error/")
     fileWriter.outputObjectsListToFile(sapdn_zpo_morematch,outputname+"_sapdn_zpo_morematch","output/error/")
@@ -376,14 +369,70 @@ def step_4_MixZtepoAndSapdn(ztepos, sapdns, outputname=None, outputpath = None,)
         if "ZTE_PO_Nr" in sapdn.__dict__:
             sapdn_with_zpo_set.add(sapdn)
 
+
     fileWriter.outputObjectsListToFile(sapdn_with_zpo_set,outputname+"_SAPDN_With_ZPO",outputpath)
 
     return sapdn_with_zpo_set
 
+def step_5_AddBookingstatusToSapdns(bookings, sapdns,outputname=None, outputpath = None,):
+    """
+
+    :param bookings:
+    :param sapdns:
+    :param outputname:
+    :param outputpath:
+    :return:
+    """
+    # build booking_dict : siteid-po : bookingobj
+
+
+    print("step_5_MixZtepoAndSapdn" + "-"*20 + "\n")
+
+    site_po_dict = {}
+    for booking in bookings:
+        if booking.Site_ID and booking.PO:
+            unique = (booking.Site_ID, booking.PO)
+            if unique not in site_po_dict:
+                site_po_dict[unique] = set()
+            site_po_dict[unique].add(booking)
+
+    attrs = [u'Belegedatum', u'Buchungsdatum',u'Stautus']
+
+    booking_match = set()
+    booking_dismatch = set()
+    for sapdn in sapdns:
+        if 'ZTE_PO_Nr' in sapdn.__dict__ and u'Equipment' in sapdn.__dict__:
+            unique = (sapdn.Equipment, sapdn.ZTE_PO_Nr)
+            if unique in site_po_dict:
+                booking_set = site_po_dict[unique]
+
+                if len(booking_set) == 1:
+                    booking = list(booking_set)[0]
+                    for k, v in booking.__dict__.items():
+                        if k in attrs:
+                            sapdn.__dict__[k] = v
+                    booking_match.add(sapdn)
+            else:
+                booking_dismatch.add(sapdn)
+
+    print("Booking match", len(booking_match),"\nBooking dismatch", len(booking_dismatch))
+
+    if not outputname:
+        outputname = "Step_5"
+    if not outputpath:
+        outputpath = 'output/dn_maker/'
 
 
 
-def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, outputpath = None,):
+    fileWriter.outputObjectsListToFile(sapdns,outputname+"_SAPDN_With_Booking",outputpath)
+    recordReader.storeRawData(sapdns, outputname+"_SAPDN_With_Booking",'output/error/')
+    recordReader.storeRawData(booking_dismatch, outputname+"_SAPDN_Without_Booking",'output/error/')
+
+    return sapdns
+
+
+
+def step_6_AddBmstatusToSapdns(bmstatus, sapdns, outputname=None, outputpath = None,):
     """
 
     :param projectname:
@@ -394,7 +443,25 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
     :return:
     """
 
-    print("\nstep_5_addBmstatusToSapdns" + '-'*20)
+    print("\nstep_6_addBmstatusToSapdns" + '-'*20)
+
+    d = {u'2Mbit-CE-Erweiterung',
+        u'Erweiterung 2nd Carrier UMTS',
+        u'Neues NE',
+        u'Neues NE LTE',
+        u'Systemtechnikwechsel',
+        u'TRX/CE-Abr\xfcstung',
+        u'Upgrade Systemtechnik'
+    }
+
+
+    bm_vorlages_dict = {
+        'BPK':[u'2Mbit-CE-Erweiterung',u'Erweiterung 2nd Carrier UMTS',
+               u'TRX/CE-Abr\xfcstung',u'Upgrade Systemtechnik'],
+        'SWAP':[u'Systemtechnikwechsel'],
+        'LTE_NEW':[u'Neues NE LTE',],
+        'UNMT_NEW':[u'Neues NE',]
+    }
 
     #build bm_dict
     bmbs_dict = {}
@@ -420,6 +487,7 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
     attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',
               u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
+              u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'PRICING',
     ]
 
     nomatch_set = set()
@@ -482,19 +550,34 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
 
     if not outputname:
-        outputname = "Step_5"
+        outputname = "Step_6"
     if not outputpath:
         outputpath = 'output/dn_maker/'
 
-    if projectname:
-        outputname = outputname + '_' + projectname
+
+    # make a output dict with projectname-matchedsapdn
+    output_dict = {}
+
+    # make a new dict to output
+    for sapdn in allmatch_set:
+        if sapdn.BAUMASSNAHMEVORLAGE:
+            for proname, vorlages in bm_vorlages_dict.items():
+                if sapdn.BAUMASSNAHMEVORLAGE in vorlages:
+                    if proname not in output_dict:
+                        output_dict[proname] = set()
+                    output_dict[proname].add(sapdn)
+
+    # output dict
+    for proname, matchsapdns in output_dict.items():
+        fileWriter.outputObjectsListToFile(matchsapdns,outputname +"_SAPDN_BM_Matched" + "_" + proname,outputpath)
 
 
+    # output error
     fileWriter.outputObjectsListToFile(bmbsmatch_set,outputname + "_bmbs_match",'output/error/')
     fileWriter.outputObjectsListToFile(bsonlymatch_set,outputname + '_bsonly_match','output/error/')
-    fileWriter.outputObjectsListToFile(allmatch_set,outputname+'_SAPDN_BMSTATUS_matched_all', outputpath)
     fileWriter.outputObjectsListToFile(more_bmidmatch_set,outputname + "_more_bmidmatch",'output/error/')
-
+    # output no matched sapdn
+    fileWriter.outputObjectsListToFile(new_sapdns,outputname+"_SAPDN_DISMATCH",outputpath)
     print("ADD bmid to sapdn rate", len(allmatch_set), len(sapdns))
 
     return new_sapdns
@@ -503,6 +586,15 @@ def step_5_addBmstatusToSapdns(projectname, bmstatus, sapdns, outputname=None, o
 
 
 
+def findDisMatchWithZteposAndSapdns(ztepos, sapdns):
+    """
+
+    :param ztepos:
+    :param sapdns:
+    :return:
+    """
+    # do po dict po: (m, qty)
+    pass
 
 
 

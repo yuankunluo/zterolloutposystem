@@ -30,7 +30,7 @@ def __readAllHeadersFromBook(book):
     :param book: a book object
     :return: a list of headers
     """
-    sheets = __readAllSheetsFromBook(book)
+    sheets = readAllSheetsFromBook(book)
     header_list = []
     for sheet in sheets:
         try:
@@ -53,7 +53,7 @@ def __readAllSheetsWithHeaderInBook(book):
     :return: a list of sheets
     """
     result = []
-    sheets = __readAllSheetsFromBook(book)
+    sheets = readAllSheetsFromBook(book)
     for sheet in sheets:
         if sheet.nrows == 0 or sheet.ncols == 0:
             continue
@@ -66,7 +66,7 @@ def __readAllSheetsWithHeaderInBook(book):
 
 
 
-def __readAllBookFilesInBook(path):
+def readAllWorkbookInBook(path):
     """
     Read all file from path
 
@@ -76,7 +76,7 @@ def __readAllBookFilesInBook(path):
     """
     if path is None:
         return None
-    print("__readAllBookFilesInBook", path)
+    # print("__readAllBookFilesInBook", path)
     book = open_workbook(path)
     book.source = path
     reg_f = '\.xls$|\.xlsx$'
@@ -88,7 +88,7 @@ def __readAllBookFilesInBook(path):
 
 
 
-def __readAllBookFilesInPath(path, recursive = False):
+def readAllBookFilesInPath(path, recursive = False):
     """
     Read all file from path
 
@@ -111,20 +111,24 @@ def __readAllBookFilesInPath(path, recursive = False):
                 else:
                     if re.match(reg, fname.lower(), re.IGNORECASE):
                         book_path = path + '/' + fname
-                        book = open_workbook(book_path)
-                        bookCount += 1
-                        print("Open Workbook", fname)
-                        book.source = book_path
-                        reg_f = '\.xls$|\.xlsx$'
-                        fname = re.sub(reg_f,'',fname)
-                        book.filename = cleanString(fname)
-                        for s in book.sheets():
-                            s.source = book.source
-                        books.append(book)
-            print("Read %d excels files"%(bookCount))
+                        try:
+                            book = open_workbook(book_path)
+                            bookCount += 1
+                            # print("Open Workbook", fname)
+                            book.source = book_path
+                            reg_f = '\.xls$|\.xlsx$'
+                            fname = re.sub(reg_f,'',fname)
+                            book.filename = cleanString(fname)
+                            for s in book.sheets():
+                                s.source = book.source
+                            books.append(book)
+                        except Exception:
+                            print("Error: reading xlsx file", book_path)
+                            continue
+            # print("Read %d excels files"%(bookCount))
             return books
         else:
-            print('%s is not path!'%(path))
+            print('Error: %s is not path!'%(path))
             return []
     else:
         books = []
@@ -136,19 +140,24 @@ def __readAllBookFilesInPath(path, recursive = False):
                     if re.match(reg, file.lower(), re.IGNORECASE):
                         book_path = root +'/' + file
                         #print(book_path)
-                        book = open_workbook(book_path)
-                        bookCount += 1
-                        print("Open Workbook", file)
-                        book.source = book_path
-                        reg_f = '\.xls$|\.xlsx$'
-                        file = re.sub(reg_f,'',file)
-                        book.filename = cleanString(file)
-                        books.append(book)
+                        try:
+                            book = open_workbook(book_path)
+                            bookCount += 1
+                            # print("Open Workbook", file)
+                            book.source = book_path
+                            reg_f = '\.xls$|\.xlsx$'
+                            file = re.sub(reg_f,'',file)
+                            book.filename = cleanString(file)
+                            books.append(book)
+                        except Exception:
+                            print("Error reading xls file", book_path)
+                            continue
+
         print("Read %d excels files"%(bookCount))
         return books
 
 
-def __readAllSheetsFromBook(book):
+def readAllSheetsFromBook(book):
     """
 
     :param book: the Workbook instance
@@ -204,13 +213,13 @@ def findHiddenRowlistFromSheet(origin_sheet):
                 hiddenlist = xhidden_list
         except Exception:
             print("Error Reading xlsx file", origin_sheet.source)
-    if len(hiddenlist) != 0:
-        print("Find %d hiddenlist in sheet %s : %s"%(len(hiddenlist), origin_sheet.source, origin_sheet.name))
+    # if len(hiddenlist) != 0:
+        # print("Find %d hiddenlist in sheet %s : %s"%(len(hiddenlist), origin_sheet.source, origin_sheet.name))
     return hiddenlist
 
 
 
-def covertSheetRowIntoRowObjectFromSheet(sheet):
+def covertSheetRowIntoRowObjectFromSheet(sheet, headerRowIndex= 0):
     """
     Covert sheet row into row object
 
@@ -218,10 +227,10 @@ def covertSheetRowIntoRowObjectFromSheet(sheet):
     :return: a list of excel row object
     """
     result = []
-    HEADER = [clearHeader(unicode(c.value)) for c in sheet.row(0)]
+    HEADER = [clearHeader(unicode(c.value)) for c in sheet.row(headerRowIndex)]
     hiddenCount = 0
     # delete empty header cell
-    for rowx in range(1,sheet.nrows):
+    for rowx in range(headerRowIndex+1,sheet.nrows):
         if rowx in sheet.hiddenlist:
             hiddenCount += 1
         # test this row's empty
@@ -385,7 +394,7 @@ def clearUnicode(value):
     value = re.sub(reg,'',value)
     return value
 
-def cleanString(value):
+def cleanString(value, replaceblank=False):
     """
     Clean the string, just keep the alphabet and number.
 
@@ -406,6 +415,9 @@ def cleanString(value):
     value = re.sub('[()]','',value) # ()
     # split string using blank
     value = re.split('\s+', value)
+    if replaceblank:
+        return "".join(value)
+
     return ' '.join(value)
 
 
@@ -413,7 +425,7 @@ def cleanString(value):
 # ---------------- apis --------------------------------
 
 def getAllRowObjectInPath(path, recursive = False):
-    books = __readAllBookFilesInPath(path, recursive)
+    books = readAllBookFilesInPath(path, recursive)
     sheets = []
     for b in books:
         s = __readAllSheetsWithHeaderInBook(b)
@@ -427,17 +439,20 @@ def getAllRowObjectInPath(path, recursive = False):
 
 
 def getAllRowObjectInBook(path):
+
+    if path == None:
+        return []
     # test if path is a non valid file
     reg_nofile = '.*[~$]+.*'
     if re.match(reg_nofile, path):
         return []
-    book = __readAllBookFilesInBook(path)
+    book = readAllWorkbookInBook(path)
     sheets = __readAllSheetsWithHeaderInBook(book)
     rowObjs = []
     for s in sheets:
         rowObj = covertSheetRowIntoRowObjectFromSheet(s)
         rowObjs.extend(rowObj)
-    print("Read %d Rowobjects from %s"%(len(rowObjs), path))
+    # print("Read %d Rowobjects from %s"%(len(rowObjs), path))
     return rowObjs
 
 
@@ -449,7 +464,7 @@ def getAllHeadersFromBookInPath(path, recursive = False):
     :return:
     """
     headers_list = []
-    books = __readAllBookFilesInPath(path, recursive)
+    books = readAllBookFilesInPath(path, recursive)
     for b in books:
         header = __readAllHeadersFromBook(b)
         headers_list.extend(header)
@@ -460,10 +475,10 @@ def getAllHeadersFromBookInPath(path, recursive = False):
 
 
 def getAllSheetsInPath(path, recursive = False):
-    books = __readAllBookFilesInPath(path, recursive)
+    books = readAllBookFilesInPath(path, recursive)
     sheets = []
     for b in books:
-        sheets.extend(__readAllSheetsFromBook(b))
+        sheets.extend(readAllSheetsFromBook(b))
     return sheets
 
 def getHeaderFromSheet(sheet):
@@ -491,7 +506,16 @@ def test(dng):
 
 def getTheNewestFileLocationInPath(path, fileNameRegx='^.*\.(xls|xlsx)$',
                                    recursively = False):
+    if path is None:
+        return None
+
     filesList = []
+
+    filelist = os.listdir(path)
+    if len(filelist) == 0:
+        print("No FILE in path:", path)
+        return None
+
     if not recursively:
         for fn in os.listdir(path):
             fullpath = os.path.join(path, fn)
@@ -516,14 +540,17 @@ def getTheNewestFileLocationInPath(path, fileNameRegx='^.*\.(xls|xlsx)$',
                     continue
         else:
             filesList.remove(fTupe)
+
     max_mtime = 0
     max_file = None
+
     for fTupe in filesList:
         fullpath = fTupe[1]
         mtime = os.stat(fullpath).st_mtime
         if mtime > max_mtime:
             max_mtime = mtime
             max_file = fullpath
+
     return  max_file
 
 

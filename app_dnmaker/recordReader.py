@@ -35,19 +35,32 @@ class Record(object):
         return hash(self.__key())
 
     def __cmp__(self, other):
-        if hash(self) > hash(other):
-            return 1
-        if hash(self) < hash(other):
+        if hasattr(other, 'Key_Attr'):
+            return cmp(self.__getKeyAttr(),other.__getKeyAttr())
+        else:
             return -1
-        if hash(self) == hash(other):
-            return 0
 
-    def __init__(self, attriList, prefix=None):
-        for a in attriList:
-            if prefix:
-                self.__dict__[prefix+"_"+a] = None
-            else:
-                self.__dict__[a] = None
+
+    def __init__(self, attriList, key_attr ,prefix=None):
+        if isinstance(attriList, list):
+            for a in attriList:
+                if prefix:
+                    self.__dict__[prefix+"_"+a] = None
+                else:
+                    self.__dict__[a] = None
+        if isinstance(attriList, dict):
+            for k, v in attriList.items():
+                if prefix:
+                    self.__dict__[prefix+"_"+k] = v
+                else:
+                    self.__dict__[k] = v
+        self.Key_Attr = key_attr
+
+
+
+
+    def __getKeyAttr(self):
+        return self.__dict__[self.Key_Attr]
 
     def add_newAttrs(self, newAttrDict):
         for k, v in newAttrDict.items():
@@ -85,6 +98,11 @@ class PurchaseRequisitionRecord(Record):
     pass
 
 
+class BookingStatusReocrd(Record):
+    pass
+
+
+
 
 # ------------------------------ load record
 
@@ -103,17 +121,18 @@ def get_ALLZteposInPath():
     po_set = set()
 
     for zpo in polist:
-        zpoObj = ZTEPoRecord(zpo_att)
+        zpoObj = ZTEPoRecord(zpo_att,'ZTE_PO_Nr')
         for k, v in zpo.__dict__.items():
             if k in zpo_att:
                 zpoObj.__dict__[k] = fileReader.clearUnicode(v)
         po_set.add(zpoObj)
 
-    print("ZPO non rate", len(po_set), len(polist))
+    print("ZPO ok rate", len(po_set), len(polist))
 
 
     storeRawData(po_set, "Raw_ZTEPO","output/raw/")
     fileWriter.outputObjectsListToFile(po_set,'Raw_ZTEPO','output/dn_maker/')
+
     return po_set
 
 
@@ -135,12 +154,12 @@ def get_AllSappoInPath(path='input/po_ztematerial_to_sappo_zztepolist/' , output
         u'Reference_PO_Number',
     ]
     sapopo_set = set()
-    rowObjs = fileReader.getAllRowObjectInPath(path)
+    rowObjs = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     missing_set = set()
 
     # cover rows as bmboject
     for row in rowObjs:
-        sappo = SAPPORecord(attrs)
+        sappo = SAPPORecord(attrs,u'PurchNo')
         for k, v in row.__dict__.items():
             if k in attrs:
                 sappo.__setattr__(k,fileReader.clearUnicode(v))
@@ -194,7 +213,7 @@ def get_AllSapdnInPath(path='input/po_vendor_to_sapdn_me2l/', output=True):
     missing_set = set()
     # cover rows as bmboject
     for drRow in drRows:
-        drobj = DeliveryRecord(attrs)
+        drobj = DeliveryRecord(attrs, u'Purchasing_Document')
         for k, v in drRow.__dict__.items():
             if k in attrs:
                 drobj.__setattr__(k,fileReader.clearUnicode(v))
@@ -203,6 +222,8 @@ def get_AllSapdnInPath(path='input/po_vendor_to_sapdn_me2l/', output=True):
             drObjects_set.add(drobj)
         else:
             missing_set.add(drobj)
+
+
 
     if output:
         fileWriter.outputObjectsListToFile(drObjects_set,'Raw_SAPDN','output/dn_maker/')
@@ -220,12 +241,12 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
     attris = [u'Equipment',u'Order',u'NotesID']
 
-    rows = fileReader.getAllRowObjectInPath(path)
+    rows = fileReader.getAllRowObjectInBook(fileReader.getTheNewestFileLocationInPath(path))
     orbmid_set = set()
     miss_set = set()
 
     for row in rows:
-        order = OrderBmidRecord(attris)
+        order = OrderBmidRecord(attris, u'Equipment')
         for k, v in row.__dict__.items():
             if k in attris:
                 order.__setattr__(k,fileReader.clearUnicode(v))
@@ -233,6 +254,7 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
             orbmid_set.add(order)
         else:
             miss_set.add(order)
+
 
 
 
@@ -247,8 +269,8 @@ def get_AllOrderBmidInPath(path='input/po_odernr_to_order_iw39/', output=True):
 
 
 
-def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
-                                outputfilename=None, outputpath = None):
+def get_AllBMStatusRecordInPath(inputpath='input/infra_bmstatus/',
+                                outputfilename=None, outputpath = None, output=True):
     """
     Read bmstatus in path
 
@@ -257,52 +279,51 @@ def get_AllBMStatusRecordInPath(bmprojectname, inputpath='input/po_bmstatus/',
     :return:
     """
 
+    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'PRICING',
+              u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
+              u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
+              u'BAUMASSNAHMEVORLAGE',u'BESCHREIBUNG',u'DO_TYP_NAME',
+    ]
 
     rowObjList = []
-    bm_sheets = []
-    #get all sheets in path
-    sheets = fileReader.getAllSheetsInPath(inputpath, recursive=True)
-    attris = [u'BAUMASSNAHME_ID', u'BS_FE',u'IST92',u'IST21',u'IST26',u'IST82',u'IST100',
-              u'STRASSE', u'PLZ',u'GEMEINDE_NAME',u'NBNEU',
-    ]
-    # test if this is a good bm status list
-    for sheet in sheets:
-        header = fileReader.getHeaderFromSheet(sheet)
-        if __contains(attris, header):
-            bm_sheets.append(sheet)
-        else:
-            print("Error: No BM_STATUS Header", sheet.name, sheet.filename)
 
-    for bm_sheet in bm_sheets:
-        rowObjs = fileReader.covertSheetRowIntoRowObjectFromSheet(bm_sheet)
-        rowObjList.extend(rowObjs)
+    listDirs = os.listdir(inputpath)
+    for dirname in listDirs:
+        subdir = os.path.join(inputpath, dirname)
+        if os.path.isdir(subdir):
+            bookpath = fileReader.getTheNewestFileLocationInPath(subdir)
+            workbook = fileReader.readAllWorkbookInBook(bookpath)
+            sheets = fileReader.readAllSheetsFromBook(workbook)
+            for sheet in sheets:
+                if sheet.name:
+                    if re.match('.*(TIS_REPORTING_BASE_M).*', sheet.name, re.IGNORECASE):
+                        rowobjs = fileReader.covertSheetRowIntoRowObjectFromSheet(sheet)
+                        rowObjList.extend(rowobjs)
+                    else:
+                        print("Find no TIS_REPORTING_BASE_M sheet in book", bookpath)
 
     # addint to list
     bm_set = set()
     for row in rowObjList:
-        bmobj = BMStatusRecord(attris)
+        bmobj = BMStatusRecord(attris,u'BAUMASSNAHME_ID')
         for k, v in row.__dict__.items():
             if k in attris:
                 bmobj.__setattr__(k,fileReader.clearUnicode(v))
-        bmobj.BM_SOURCE = row.Source
         bm_set.add(bmobj)
 
 
 
-    print("BM rate", len(bm_set), len(rowObjList))
+    print("BM rate", len(bm_set), len(rowObjList), len(bm_set)/len(rowObjList))
 
     if not outputfilename:
         outputfilename = "Raw_Bmstatus"
     if not outputpath:
         outputpath = "output/dn_maker/"
 
-    if bmprojectname:
-        outputfilename = outputfilename+"_"+ bmprojectname
 
-
-
-    fileWriter.outputObjectsListToFile(bm_set,outputfilename,outputpath)
-    storeRawData(bm_set,outputfilename,'output/raw/')
+    if output:
+        fileWriter.outputObjectsListToFile(bm_set,outputfilename,outputpath)
+        storeRawData(bm_set,outputfilename,'output/raw/')
 
     return bm_set
 
@@ -332,12 +353,14 @@ def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_
     pr_set = set()
     # cover rows as bmboject
     for row in drRows:
-        prObj = PurchaseRequisitionRecord(attris)
+        prObj = PurchaseRequisitionRecord(attris,u'Purchase_Order')
         for k, v in row.__dict__.items():
             if k in attris:
                 prObj.__setattr__(k,fileReader.clearUnicode(v))
         if prObj.Order and prObj.Material and prObj.Purchase_Order and prObj.Purchase_Requisition:
             pr_set.add(prObj)
+
+
 
     if output:
         fileWriter.outputObjectsListToFile(pr_set,'Raw_SAPPR','output/dn_maker/')
@@ -348,6 +371,51 @@ def get_AllPurchesingRequestionsInPath(path="input/po_vendor_to_purchaserequest_
 
 
 
+
+def get_ALLBookingStatus(path="input/po_booked_status_xiaorong/",outputfilename=None, outputpath = None, output=True):
+    """
+
+    :param path:
+    :param output:
+    :return:
+    """
+    book = fileReader.readAllWorkbookInBook(fileReader.getTheNewestFileLocationInPath(path))
+    sheets = []
+    for s in fileReader.readAllSheetsFromBook(book):
+        if s.name:
+            if re.match('.*(zte).*', s.name,re.IGNORECASE):
+                sheets.append(s)
+
+    print("Find zte sheets", len(sheets))
+
+    rowObjs = []
+    for s in sheets:
+        rows = fileReader.covertSheetRowIntoRowObjectFromSheet(s, headerRowIndex=1)
+        rowObjs.extend(rows)
+
+
+    attrs = [u'Belegedatum', u'Buchungsdatum',u'PO',u'Site_ID',u'Stautus',u'SAP_PO_Nr']
+    bookingobj_set = set()
+    for rowobj in rowObjs:
+        bookObj = BookingStatusReocrd(attrs,u'SAP_PO_Nr')
+        for k, v in rowobj.__dict__.items():
+            if k in attrs:
+                bookObj.__setattr__(k, fileReader.clearUnicode(v))
+        bookingobj_set.add(bookObj)
+
+    print("Booking Status record rate", len(bookingobj_set), len(rowObjs))
+
+    if not outputfilename:
+        outputfilename = "Raw_Bookingstatus"
+    if not outputpath:
+        outputpath = "output/dn_maker/"
+
+
+    if output:
+        fileWriter.outputObjectsListToFile(bookingobj_set,outputfilename,outputpath)
+        storeRawData(bookingobj_set,outputfilename,'output/raw/')
+
+    return bookingobj_set
 
 
 
@@ -374,6 +442,7 @@ def storeRawData(object, filename, path='output/raw/'):
     with open(path + filename+ '.raw', 'wb') as f:
         pickle.dump(object, f)
     print("Store Objects in " +  path + filename +'.raw')
+
 
 
 

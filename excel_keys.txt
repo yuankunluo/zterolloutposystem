@@ -57,3 +57,76 @@ u'Equipment': u'17531337',
 u'NotesID': u'201661552', 
 u'Order': u'50208399'}
 
+
+
+list(bmstatus)[0].__dict__
+Out[27]:
+{u'BAUMASSNAHMEVORLAGE': u'Upgrade Systemtechnik',
+ u'BAUMASSNAHME_ID': u'201705559',
+ u'BESCHREIBUNG': u'Abr\xfcstung BPK 4 -> 2',
+ u'BS_FE': u'16532264',
+ u'DO_TYP_NAME': u'Node B',
+ u'GEMEINDE_NAME': u'Bonn',
+ u'IST100': u'41883',
+ u'IST21': u'41850',
+ u'IST26': u'41858',
+ u'IST82': u'41879',
+ u'IST92': u'41879',
+ u'NBNEU': u'NW',
+ u'PLZ': u'53129',
+ u'PRICING': u'X28',
+ u'STRASSE': u'Rheinweg 154'}
+
+
+booking_stats.__dict__
+Out[28]:
+{u'Belegedatum': 41849.0,
+ u'Buchungsdatum': None,
+ 'Filename': 'ZTE gebuchte Lieferscheine_update bis 26.11.2014',
+ 'Hidden': False,
+ u'PO': 32012910.0,
+ 'Rowindex': 2,
+ u'SAP_PO_Nr': u'\u6ca1\u6709DN',
+ 'Sheetname': u'ZTE',
+ u'Site_ID': 16530352.0,
+ 'Source': 'input/po_booked_status_xiaorong/ZTE gebuchte Lieferscheine_update bis 26.11.2014.xlsx',
+ u'Stautus': u'falsche PO Nummer'}
+
+
+
+
+dns[0].__dict__
+Out[3]:
+{'Applicant': u'Quan Zhou',
+ 'BMID': u'201715418',
+ 'BomNr': u'130000040522 ',
+ 'Carrier': '',
+ 'Carry_Mode': '',
+ 'Consignee': u'Dietmar Focht 251114',
+ 'Contract_NO': u'S4DE2009121401UMTCS1',
+ 'Contract_NONo': None,
+ 'DN_NO': '',
+ 'Date': '20141126',
+ 'Destination_Address': u'ZTE Services Deutschland GmbHLeitzstrasse 4570469 Stuttgart',
+ 'Detail_Description': u'BPK Board',
+ 'Filename': u'19530529_BPK_ DO_Stgt',
+ 'Key_Attr': 'BMID',
+ 'NEID': u'19530529',
+ 'No': u'1',
+ 'Original_Warehouse': u'Central',
+ 'PackageNo': None,
+ 'Phone_NO1': '',
+ 'Phone_NO2': '',
+ 'Project_Name': u'Tiger UMTS',
+ 'QTY': u'4',
+ 'Region': u'South',
+ 'Remark': None,
+ 'Required_date_of_Arrival': u'41971',
+ 'SITE_ID': u'19530529',
+ 'Source': 'input/dnge/test//19530529_BPK_ DO_Stgt.xls',
+ 'Staff_ID': u'6266000073',
+ 'UNIT': u'pcs',
+ 'Volume': None,
+ 'Weekdaynr': 3,
+ 'Weeknr': 48,
+ 'Yearnr': 2014}
