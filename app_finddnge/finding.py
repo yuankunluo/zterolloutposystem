@@ -19,18 +19,19 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
     """
 
     row_list = fileReader.getAllRowObjectInPath(findlist,True)
-    dnge_list = [r.DNGE.strip() for r in row_list if r.DNGE]
-    file_list = []
-
+    dnge_list = [re.sub('\s+','',r.DNGE,re.IGNORECASE) for r in row_list if r.DNGE]
+    not_find = []
     walk_tree = {}
 
     print("*"*30)
     for (dirpath, dirnames, filenames) in os.walk(dngesinput):
         for fname in filenames:
-            reg = '.*(DNGE\d+).*'
-            match = re.match(reg, fname)
+            fname_clean = re.sub('\s+','',fname)
+            print(fname_clean)
+            reg = '^(.*)(DNGE.*)(\..*$)'
+            match = re.match(reg, fname_clean)
             if match:
-                fname_clean = match.groups()[0]
+                fname_clean = match.groups()[1]
                 fname_clean = unicode(fname_clean)
                 walk_tree[fname_clean] = (dirpath, fname)
             else:
@@ -49,12 +50,12 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
                 f2.write(content)
             find_count += 1
         else:
-            print(dnge + " can not be found")
+            not_find.append(dnge)
 
 
     print("*"*30)
     print("Find %d in %d" % (find_count, len(dnge_list)))
     print("Done")
 
-    return dnge_list, file_list
+    return dnge_list, walk_tree, not_find
 
