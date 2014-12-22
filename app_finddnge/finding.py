@@ -27,7 +27,7 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
     find_count = 0
     for (dirpath, dirnames, filenames) in os.walk(dngesinput):
         for fname in filenames:
-            fname_clean = re.sub('\.xls?x' , '', fname, re.IGNORECASE)
+            fname_clean = re.sub('(\.xls?x)|(\.pdf)', '', fname, re.IGNORECASE)
             fname_clean = unicode(fname_clean)
             file_list.append(fname_clean)
             if fname_clean in dnge_list:
