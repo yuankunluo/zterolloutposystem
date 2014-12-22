@@ -26,8 +26,8 @@
       <file leaf-file-name="finding.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app_finddnge/finding.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.64319247" vertical-offset="634" max-vertical-offset="1273">
-              <caret line="55" column="16" selection-start-line="55" selection-start-column="16" selection-end-line="55" selection-end-column="16" />
+            <state vertical-scroll-proportion="0.6729264" vertical-offset="330" max-vertical-offset="1292">
+              <caret line="40" column="17" selection-start-line="40" selection-start-column="17" selection-end-line="40" selection-end-column="17" />
               <folding>
                 <element signature="e#28#65#0" expanded="true" />
               </folding>
@@ -643,8 +643,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app_finddnge/finding.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.64319247" vertical-offset="634" max-vertical-offset="1273">
-          <caret line="55" column="16" selection-start-line="55" selection-start-column="16" selection-end-line="55" selection-end-column="16" />
+        <state vertical-scroll-proportion="0.6729264" vertical-offset="330" max-vertical-offset="1292">
+          <caret line="40" column="17" selection-start-line="40" selection-start-column="17" selection-end-line="40" selection-end-column="17" />
           <folding>
             <element signature="e#28#65#0" expanded="true" />
           </folding>

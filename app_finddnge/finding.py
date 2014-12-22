@@ -26,7 +26,7 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
 
     walk_tree = {}
 
-
+    print("*"*30)
     for (dirpath, dirnames, filenames) in os.walk(dngesinput):
         for fname in filenames:
             reg = '.*(DNGE\d+).*'
@@ -38,10 +38,11 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
             else:
                 print("%s does not match" %(fname))
 
+    print("*"*30)
     find_count = 0
     for dnge in dnge_list:
         if dnge in walk_tree:
-            dirpth = walk_tree[dnge][0]
+            dirpath = walk_tree[dnge][0]
             fname = walk_tree[dnge][1]
             content = ""
             with open(dirpath + "/" + fname , 'rb') as f1:
