@@ -21,27 +21,38 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
     row_list = fileReader.getAllRowObjectInPath(findlist,True)
     dnge_list = [r.DNGE for r in row_list]
     file_list = []
+    not_find = []
     # print(dnge_list)
 
+    walk_tree = {}
 
-    find_count = 0
+
     for (dirpath, dirnames, filenames) in os.walk(dngesinput):
         for fname in filenames:
-
-            #fname_clean = re.sub('(\.xls?x)|(\.pdf)', '', fname, re.IGNORECASE)
             reg = '.*(DNGE\d+).*'
             match = re.match(reg, fname)
             if match:
                 fname_clean = match.groups()[0]
                 fname_clean = unicode(fname_clean)
-                file_list.append(fname_clean)
-                if fname_clean in dnge_list:
-                    content = None
-                    with open(dirpath + "/" + fname, "rb") as f:
-                        content = f.read()
-                    with open(outputpath + fname, "wb") as f2:
-                        f2.write(content)
-                    find_count += 1
+                walk_tree[fname_clean] = (dirpath, fname)
+            else:
+                print("%s does not match" %(fname))
+
+    find_count = 0
+    for dnge in dnge_list:
+        if dnge in walk_tree:
+            dirpth = walk_tree[dnge][0]
+            fname = walk_tree[dnge][1]
+            content = ""
+            with open(dirpath + "/" + fname , 'rb') as f1:
+                content = f1.read()
+            with open(outputpath + fname ,"wb") as f2:
+                f2.write(content)
+            find_count += 1
+        else:
+            print("-"*20)
+            print(dnge + " can not be found")
+
 
     print("Find %d in %d" % (find_count, len(dnge_list)))
     print("Done")
