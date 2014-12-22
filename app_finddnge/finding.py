@@ -19,10 +19,8 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
     """
 
     row_list = fileReader.getAllRowObjectInPath(findlist,True)
-    dnge_list = [r.DNGE for r in row_list]
+    dnge_list = [r.DNGE.strip() for r in row_list if r.DNGE]
     file_list = []
-    not_find = []
-    # print(dnge_list)
 
     walk_tree = {}
 
