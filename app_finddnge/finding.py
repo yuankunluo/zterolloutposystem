@@ -50,10 +50,10 @@ def goToFindDNGEFromListInDirectory(findlist='input/finddnge_list/', dngesinput=
                 f2.write(content)
             find_count += 1
         else:
-            print("-"*20)
             print(dnge + " can not be found")
 
 
+    print("*"*30)
     print("Find %d in %d" % (find_count, len(dnge_list)))
     print("Done")
 
