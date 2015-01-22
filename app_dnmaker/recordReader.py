@@ -41,7 +41,7 @@ class Record(object):
             return -1
 
 
-    def __init__(self, attriList, key_attr ,prefix=None):
+    def __init__(self, attriList, key_attr, prefix=None):
         if isinstance(attriList, list):
             for a in attriList:
                 if prefix:
